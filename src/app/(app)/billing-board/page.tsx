@@ -22,6 +22,13 @@ interface ProjectListRow {
   clients: { name: string } | null;
 }
 
+interface UnlinkedCrmContact {
+  clickupTaskId: string;
+  name: string;
+  companyName: string | null;
+  primaryContact: string | null;
+}
+
 const BILLING_TYPE_LABEL: Record<string, string> = {
   hourly: "Hourly",
   percentage_phase: "% per phase",
@@ -41,9 +48,11 @@ export default function BillingBoardPage() {
 
   const [unassignedProjects, setUnassignedProjects] = useState<UnassignedProject[]>([]);
   const [clientOptions, setClientOptions] = useState<Client[]>([]);
-  const [showClientForm, setShowClientForm] = useState(false);
+  const [clientPanelMode, setClientPanelMode] = useState<"closed" | "picker" | "form">("closed");
   const [editingClient, setEditingClient] = useState<{ id: string; values: ClientFormValues } | null>(null);
   const [showClientList, setShowClientList] = useState(false);
+  const [unlinkedCrmContacts, setUnlinkedCrmContacts] = useState<UnlinkedCrmContact[]>([]);
+  const [linkingCrmId, setLinkingCrmId] = useState<string | null>(null);
   const [assignPicks, setAssignPicks] = useState<Record<string, string>>({});
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -94,6 +103,12 @@ export default function BillingBoardPage() {
     setAllProjects(data.projects || []);
   }, []);
 
+  const loadUnlinkedCrmContacts = useCallback(async () => {
+    const res = await fetch("/api/crm/unlinked-clients");
+    const data = await res.json();
+    setUnlinkedCrmContacts(data.contacts || []);
+  }, []);
+
   useEffect(() => {
     loadBoard(tab);
   }, [tab, loadBoard]);
@@ -101,7 +116,8 @@ export default function BillingBoardPage() {
   useEffect(() => {
     loadAssignmentData();
     loadAllProjects();
-  }, [loadAssignmentData, loadAllProjects]);
+    loadUnlinkedCrmContacts();
+  }, [loadAssignmentData, loadAllProjects, loadUnlinkedCrmContacts]);
 
   async function handleSync() {
     setSyncing(true);
@@ -112,19 +128,50 @@ export default function BillingBoardPage() {
   }
 
   async function handleClientSaved() {
-    setShowClientForm(false);
+    setClientPanelMode("closed");
     setEditingClient(null);
     await loadAssignmentData();
   }
 
-  function startEditClient(c: Client) {
-    setEditingClient({ id: c.id, values: clientToForm(c) });
-    setShowClientForm(true);
+  function closeClientPanel() {
+    setClientPanelMode("closed");
+    setEditingClient(null);
   }
 
-  function startAddClient() {
+  function startEditClient(c: Client) {
+    setEditingClient({ id: c.id, values: clientToForm(c) });
+    setClientPanelMode("form");
+  }
+
+  async function startAddClient() {
+    if (clientPanelMode !== "closed") {
+      closeClientPanel();
+      return;
+    }
     setEditingClient(null);
-    setShowClientForm((s) => !s);
+    await loadUnlinkedCrmContacts();
+    setClientPanelMode("picker");
+  }
+
+  function startManualClient() {
+    setEditingClient(null);
+    setClientPanelMode("form");
+  }
+
+  async function handleLinkCrmContact(contact: UnlinkedCrmContact) {
+    setLinkingCrmId(contact.clickupTaskId);
+    const res = await fetch("/api/clients/link-crm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clickupTaskId: contact.clickupTaskId }),
+    });
+    const data = await res.json();
+    setLinkingCrmId(null);
+    if (data.client) {
+      setEditingClient({ id: data.client.id, values: clientToForm(data.client) });
+      setClientPanelMode("form");
+      await Promise.all([loadAssignmentData(), loadUnlinkedCrmContacts()]);
+    }
   }
 
   async function handleAssign(projectId: string) {
@@ -280,28 +327,63 @@ export default function BillingBoardPage() {
       />
 
       <div className="panel" style={{ padding: 20, marginBottom: "var(--space-group)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: showClientForm || showClientList ? 16 : 0 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: clientPanelMode !== "closed" || showClientList ? 16 : 0 }}>
           <div className="panel-title">Clients</div>
           <div style={{ display: "flex", gap: 8 }}>
             <button className="btn-secondary" onClick={() => setShowClientList((s) => !s)}>
               {showClientList ? "Hide clients" : `Manage clients (${clientOptions.length})`}
             </button>
             <button className="btn-primary" onClick={startAddClient}>
-              {showClientForm && !editingClient ? "Cancel" : "+ New client"}
+              {clientPanelMode !== "closed" ? "Cancel" : "+ New client"}
             </button>
           </div>
         </div>
 
-        {showClientForm && (
+        {clientPanelMode === "picker" && (
+          <div className="panel" style={{ padding: 20, marginBottom: 20 }}>
+            <p style={{ fontSize: 13, color: "var(--text-dim)", marginTop: 0, marginBottom: 16 }}>
+              Pick the ClickUp CRM contact this billing profile belongs to — keeps the client's identity
+              tied to CRM instead of typed twice. You'll add phone/address/rate next.
+            </p>
+            {unlinkedCrmContacts.length === 0 ? (
+              <p style={{ fontSize: 13, color: "var(--text-dim)" }}>
+                Every CRM contact already has a billing profile.
+              </p>
+            ) : (
+              unlinkedCrmContacts.map((contact) => (
+                <div
+                  key={contact.clickupTaskId}
+                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid var(--line-soft)" }}
+                >
+                  <div>
+                    <div className="table-value">{contact.companyName || contact.name}</div>
+                    <div style={{ fontSize: 12, color: "var(--text-dim)" }}>
+                      {[contact.primaryContact, contact.companyName ? contact.name : null].filter(Boolean).join(" · ")}
+                    </div>
+                  </div>
+                  <button
+                    className="btn-secondary"
+                    onClick={() => handleLinkCrmContact(contact)}
+                    disabled={linkingCrmId === contact.clickupTaskId}
+                  >
+                    {linkingCrmId === contact.clickupTaskId ? "Linking…" : "Use this contact"}
+                  </button>
+                </div>
+              ))
+            )}
+            <button type="button" className="btn-secondary" onClick={startManualClient} style={{ marginTop: 16 }}>
+              + Add a client not in ClickUp CRM
+            </button>
+          </div>
+        )}
+
+        {clientPanelMode === "form" && (
           <ClientForm
             key={editingClient?.id ?? "new"}
             initial={editingClient?.values ?? emptyClientForm()}
             editing={editingClient?.id ?? null}
             onSaved={handleClientSaved}
-            onCancel={() => {
-              setShowClientForm(false);
-              setEditingClient(null);
-            }}
+            onCancel={closeClientPanel}
           />
         )}
 
