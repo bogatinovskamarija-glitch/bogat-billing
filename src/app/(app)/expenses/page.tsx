@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import ScreenHeader from "@/components/ScreenHeader";
+import ScreenHeader from "../../../components/ScreenHeader";
 
 interface AccountOption {
   id: string;

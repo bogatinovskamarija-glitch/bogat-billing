@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase";
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "../../components/Sidebar";
 
 export const dynamic = "force-dynamic";
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import ScreenHeader from "@/components/ScreenHeader";
-import RevenueChart, { MonthBucket } from "@/components/RevenueChart";
+import ScreenHeader from "../../../components/ScreenHeader";
+import RevenueChart, { MonthBucket } from "../../../components/RevenueChart";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getCandidatesForClient, getInvoicedTaskMap, getTaskOverrides, getBillableEmployees } from "@/lib/billing-candidates";
 

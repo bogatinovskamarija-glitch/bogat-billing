@@ -1,4 +1,4 @@
-import ScreenHeader from "@/components/ScreenHeader";
+import ScreenHeader from "../../../components/ScreenHeader";
 import { supabaseAdmin } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";

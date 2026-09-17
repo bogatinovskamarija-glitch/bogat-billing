@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import ScreenHeader from "@/components/ScreenHeader";
+import ScreenHeader from "../../../components/ScreenHeader";
 import type { Deal, Stage } from "@/app/api/pipeline/route";
 
 const STAGES: { key: Stage; label: string; probability: number }[] = [

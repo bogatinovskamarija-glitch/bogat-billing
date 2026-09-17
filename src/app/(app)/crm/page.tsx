@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import ScreenHeader from "../../../components/ScreenHeader";
-import ContactDrawer from "@/components/ContactDrawer";
+import ContactDrawer from "../../../components/ContactDrawer";
 import type { CrmContact } from "@/app/api/crm/route";
 
 export default function CrmPage() {
