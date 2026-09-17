@@ -4,7 +4,7 @@ services:
     env: node
     region: oregon
     plan: free
-    buildCommand: npm install && npm run build
+    buildCommand: echo "--- DIAG2 ---" && git status && echo "---" && git ls-files src/components && echo "---" && git log --oneline --follow -- src/components/ScreenHeader.tsx && echo "---" && find src/components -type f | sort && echo "--- END DIAG2 ---" && npm install && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
