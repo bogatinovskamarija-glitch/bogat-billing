@@ -47,12 +47,13 @@ export interface InvoicePdfData {
   periodEnd: string | null;
   clientName: string;
   contactName: string | null;
+  contactPhone: string | null;
   billingAddress: string | null;
   projectNames: string;
   subtotal: number;
   taxAmount: number;
   totalAmount: number;
-  lineItems: { taskName: string; hours: number; hourlyRate: number; amount: number }[];
+  lineItems: { taskName: string; hours: number | null; hourlyRate: number | null; amount: number }[];
 }
 
 function fmtDate(d: string | null): string {
@@ -85,6 +86,7 @@ export default function InvoiceDocument({ data }: { data: InvoicePdfData }) {
             <Text style={styles.metaValue}>{data.clientName}</Text>
             {data.contactName && <Text style={styles.metaValue}>{data.contactName}</Text>}
             {data.billingAddress && <Text style={styles.metaValue}>{data.billingAddress}</Text>}
+            {data.contactPhone && <Text style={styles.metaValue}>{data.contactPhone}</Text>}
           </View>
           <View style={styles.metaCol}>
             <Text style={styles.metaLabel}>ISSUED</Text>
@@ -112,8 +114,8 @@ export default function InvoiceDocument({ data }: { data: InvoicePdfData }) {
           {data.lineItems.map((item, i) => (
             <View style={styles.tableRow} key={i}>
               <Text style={styles.colDesc}>{item.taskName}</Text>
-              <Text style={styles.colHours}>{item.hours.toFixed(1)}</Text>
-              <Text style={styles.colRate}>${item.hourlyRate.toFixed(2)}</Text>
+              <Text style={styles.colHours}>{item.hours === null ? "—" : item.hours.toFixed(1)}</Text>
+              <Text style={styles.colRate}>{item.hourlyRate === null ? "—" : `$${item.hourlyRate.toFixed(2)}`}</Text>
               <Text style={styles.colAmount}>${item.amount.toFixed(2)}</Text>
             </View>
           ))}

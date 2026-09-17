@@ -9,17 +9,19 @@ export async function GET() {
 }
 
 // Creates a draft run and computes a paystub for every active employee
-// (excluding owner_draw, which is a separate action, not a wage run).
+// whose own pay_frequency matches this run (excluding owner_draw, which is
+// a separate action, not a wage run) — so a future mixed weekly/monthly
+// team doesn't get lumped into one run.
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { periodStart, periodEnd, payDate } = body;
-  if (!periodStart || !periodEnd || !payDate) {
-    return NextResponse.json({ error: "periodStart, periodEnd, payDate are required" }, { status: 400 });
+  const { periodStart, periodEnd, payDate, payFrequency } = body;
+  if (!periodStart || !periodEnd || !payDate || !payFrequency) {
+    return NextResponse.json({ error: "periodStart, periodEnd, payDate, payFrequency are required" }, { status: 400 });
   }
 
   const { data: run, error: runError } = await supabaseAdmin
     .from("pay_runs")
-    .insert({ period_start: periodStart, period_end: periodEnd, pay_date: payDate, status: "draft" })
+    .insert({ period_start: periodStart, period_end: periodEnd, pay_date: payDate, pay_frequency: payFrequency, status: "draft" })
     .select()
     .single();
   if (runError || !run) return NextResponse.json({ error: runError?.message }, { status: 500 });
@@ -28,10 +30,11 @@ export async function POST(req: NextRequest) {
     .from("employees")
     .select("*")
     .eq("is_active", true)
+    .eq("pay_frequency", payFrequency)
     .neq("employee_type", "owner_draw");
 
   for (const emp of (employees || []) as Employee[]) {
-    const computed = await computePaystub(emp, periodStart, periodEnd, payDate);
+    const computed = await computePaystub(emp, periodStart, periodEnd, payDate, payFrequency);
     await supabaseAdmin.from("paystubs").insert({
       pay_run_id: run.id,
       employee_id: computed.employeeId,

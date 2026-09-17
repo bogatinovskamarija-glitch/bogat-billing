@@ -3,16 +3,32 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import ScreenHeader from "@/components/ScreenHeader";
-import type { CandidateClient, BoardTab } from "@/lib/billing-candidates";
+import type { CandidateClient, BoardTab, MilestoneProject, MilestonePhase } from "@/lib/billing-candidates";
+import type { Client } from "@/lib/supabase";
+import ClientForm, { clientToForm, emptyClientForm, ClientFormValues } from "@/components/ClientForm";
+import MilestoneBilling from "@/components/MilestoneBilling";
+import ProjectBillingSetup from "@/components/ProjectBillingSetup";
 
 interface UnassignedProject {
   id: string;
   name: string;
 }
-interface ClientOption {
+
+interface ProjectListRow {
   id: string;
   name: string;
+  billing_type: string;
+  contract_value: number | null;
+  clients: { name: string } | null;
 }
+
+const BILLING_TYPE_LABEL: Record<string, string> = {
+  hourly: "Hourly",
+  percentage_phase: "% per phase",
+  fixed_fee: "Fixed fee",
+  retainer: "Retainer",
+  pro_bono: "Pro bono",
+};
 
 export default function BillingBoardPage() {
   const router = useRouter();
@@ -24,17 +40,26 @@ export default function BillingBoardPage() {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
   const [unassignedProjects, setUnassignedProjects] = useState<UnassignedProject[]>([]);
-  const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
-  const [newClientName, setNewClientName] = useState("");
+  const [clientOptions, setClientOptions] = useState<Client[]>([]);
+  const [showClientForm, setShowClientForm] = useState(false);
+  const [editingClient, setEditingClient] = useState<{ id: string; values: ClientFormValues } | null>(null);
+  const [showClientList, setShowClientList] = useState(false);
   const [assignPicks, setAssignPicks] = useState<Record<string, string>>({});
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
+
+  const [milestoneProjects, setMilestoneProjects] = useState<MilestoneProject[]>([]);
+  const [phaseSelected, setPhaseSelected] = useState<Record<string, boolean>>({});
+  const [allProjects, setAllProjects] = useState<ProjectListRow[]>([]);
+  const [showProjectList, setShowProjectList] = useState(false);
+  const [editingProjectBillingId, setEditingProjectBillingId] = useState<string | null>(null);
 
   const loadBoard = useCallback(async (activeTab: BoardTab) => {
     setLoading(true);
     const res = await fetch(`/api/billing-board?tab=${activeTab}`);
     const data = await res.json();
     setClients(data.clients || []);
+    setMilestoneProjects(data.milestoneProjects || []);
     const initialSelected: Record<string, boolean> = {};
     (data.clients || []).forEach((c: CandidateClient) =>
       c.projects.forEach((p) =>
@@ -44,6 +69,13 @@ export default function BillingBoardPage() {
       )
     );
     setSelected(initialSelected);
+    const initialPhaseSelected: Record<string, boolean> = {};
+    (data.milestoneProjects || []).forEach((p: MilestoneProject) =>
+      p.phases.forEach((phase) => {
+        if (phase.status === "ready_to_bill") initialPhaseSelected[phase.id] = true;
+      })
+    );
+    setPhaseSelected(initialPhaseSelected);
     setLoading(false);
   }, []);
 
@@ -56,13 +88,20 @@ export default function BillingBoardPage() {
     setUnassignedProjects(projectsRes.projects || []);
   }, []);
 
+  const loadAllProjects = useCallback(async () => {
+    const res = await fetch("/api/projects");
+    const data = await res.json();
+    setAllProjects(data.projects || []);
+  }, []);
+
   useEffect(() => {
     loadBoard(tab);
   }, [tab, loadBoard]);
 
   useEffect(() => {
     loadAssignmentData();
-  }, [loadAssignmentData]);
+    loadAllProjects();
+  }, [loadAssignmentData, loadAllProjects]);
 
   async function handleSync() {
     setSyncing(true);
@@ -72,16 +111,20 @@ export default function BillingBoardPage() {
     router.refresh();
   }
 
-  async function handleCreateClient(e: React.FormEvent) {
-    e.preventDefault();
-    if (!newClientName.trim()) return;
-    await fetch("/api/clients", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newClientName.trim() }),
-    });
-    setNewClientName("");
+  async function handleClientSaved() {
+    setShowClientForm(false);
+    setEditingClient(null);
     await loadAssignmentData();
+  }
+
+  function startEditClient(c: Client) {
+    setEditingClient({ id: c.id, values: clientToForm(c) });
+    setShowClientForm(true);
+  }
+
+  function startAddClient() {
+    setEditingClient(null);
+    setShowClientForm((s) => !s);
   }
 
   async function handleAssign(projectId: string) {
@@ -92,7 +135,21 @@ export default function BillingBoardPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ clientId }),
     });
-    await Promise.all([loadAssignmentData(), loadBoard(tab)]);
+    await Promise.all([loadAssignmentData(), loadBoard(tab), loadAllProjects()]);
+  }
+
+  async function handleToggleReady(phase: MilestonePhase, ready: boolean) {
+    await fetch(`/api/phase-billing/${phase.id}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: ready ? "ready_to_bill" : "not_started" }),
+    });
+    await loadBoard(tab);
+  }
+
+  async function handleBillingSetupSaved() {
+    setEditingProjectBillingId(null);
+    await Promise.all([loadBoard(tab), loadAllProjects()]);
   }
 
   const selectedInfo = useMemo(() => {
@@ -110,35 +167,64 @@ export default function BillingBoardPage() {
         })
       )
     );
+    milestoneProjects.forEach((p) =>
+      p.phases.forEach((phase) => {
+        if (phaseSelected[phase.id] && phase.status === "ready_to_bill") {
+          total += phase.amount;
+          taskCount += 1;
+          clientIds.add(p.clientId);
+        }
+      })
+    );
     return { total: Math.round(total * 100) / 100, taskCount, clientCount: clientIds.size };
-  }, [clients, selected]);
+  }, [clients, selected, milestoneProjects, phaseSelected]);
 
   const selections = useMemo(() => {
-    return clients
-      .map((c) => {
-        const items: any[] = [];
-        c.projects.forEach((p) =>
-          p.tasks.forEach((t) => {
-            if (selected[t.clickupTaskId] && t.billingStatus !== "invoiced") {
-              items.push({
-                clickupTaskId: t.clickupTaskId,
-                clickupListId: t.clickupListId,
-                projectId: t.projectId,
-                taskName: t.taskName,
-                phase: t.phase,
-                closedDate: t.closedDate,
-                hours: t.hours,
-                hourlyRate: t.hourlyRate,
-                amount: t.amount,
-                progressNarrative: t.progressNarrative,
-              });
-            }
-          })
-        );
-        return { clientId: c.clientId, clientName: c.clientName, items, total: items.reduce((s, i) => s + i.amount, 0) };
-      })
+    const byClient = new Map<string, { clientId: string; clientName: string; items: any[] }>();
+
+    clients.forEach((c) => {
+      c.projects.forEach((p) =>
+        p.tasks.forEach((t) => {
+          if (selected[t.clickupTaskId] && t.billingStatus !== "invoiced") {
+            if (!byClient.has(c.clientId)) byClient.set(c.clientId, { clientId: c.clientId, clientName: c.clientName, items: [] });
+            byClient.get(c.clientId)!.items.push({
+              kind: "task",
+              clickupTaskId: t.clickupTaskId,
+              clickupListId: t.clickupListId,
+              projectId: t.projectId,
+              taskName: t.taskName,
+              phase: t.phase,
+              closedDate: t.closedDate,
+              hours: t.hours,
+              hourlyRate: t.hourlyRate,
+              amount: t.amount,
+              progressNarrative: t.progressNarrative,
+            });
+          }
+        })
+      );
+    });
+
+    milestoneProjects.forEach((p) => {
+      p.phases.forEach((phase) => {
+        if (phaseSelected[phase.id] && phase.status === "ready_to_bill") {
+          if (!byClient.has(p.clientId)) byClient.set(p.clientId, { clientId: p.clientId, clientName: p.clientName, items: [] });
+          byClient.get(p.clientId)!.items.push({
+            kind: "phase",
+            phaseBillingId: phase.id,
+            projectId: p.projectId,
+            phaseName: phase.phase_name,
+            percentOfContract: Number(phase.percent_of_contract),
+            amount: phase.amount,
+          });
+        }
+      });
+    });
+
+    return Array.from(byClient.values())
+      .map((s) => ({ ...s, total: s.items.reduce((sum, i) => sum + i.amount, 0) }))
       .filter((s) => s.items.length > 0);
-  }, [clients, selected]);
+  }, [clients, selected, milestoneProjects, phaseSelected]);
 
   async function handleGenerate() {
     setGenerating(true);
@@ -193,6 +279,126 @@ export default function BillingBoardPage() {
         }
       />
 
+      <div className="panel" style={{ padding: 20, marginBottom: "var(--space-group)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: showClientForm || showClientList ? 16 : 0 }}>
+          <div className="panel-title">Clients</div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn-secondary" onClick={() => setShowClientList((s) => !s)}>
+              {showClientList ? "Hide clients" : `Manage clients (${clientOptions.length})`}
+            </button>
+            <button className="btn-primary" onClick={startAddClient}>
+              {showClientForm && !editingClient ? "Cancel" : "+ New client"}
+            </button>
+          </div>
+        </div>
+
+        {showClientForm && (
+          <ClientForm
+            key={editingClient?.id ?? "new"}
+            initial={editingClient?.values ?? emptyClientForm()}
+            editing={editingClient?.id ?? null}
+            onSaved={handleClientSaved}
+            onCancel={() => {
+              setShowClientForm(false);
+              setEditingClient(null);
+            }}
+          />
+        )}
+
+        {showClientList && (
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Contact</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {clientOptions.map((c) => (
+                <tr key={c.id}>
+                  <td className="table-value">
+                    {c.name}
+                    {c.company_name && <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{c.company_name}</div>}
+                  </td>
+                  <td style={{ color: "var(--text-dim)" }}>{c.contact_name ?? "—"}</td>
+                  <td style={{ color: "var(--text-dim)" }}>{c.contact_email ?? "—"}</td>
+                  <td style={{ color: "var(--text-dim)" }}>{c.contact_phone ?? "—"}</td>
+                  <td>
+                    <button className="btn-secondary" onClick={() => startEditClient(c)} style={{ padding: "6px 12px" }}>
+                      Edit
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <div className="panel" style={{ padding: 20, marginBottom: "var(--space-group)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: showProjectList ? 16 : 0 }}>
+          <div>
+            <div className="panel-title">Project Billing Setup</div>
+            <p style={{ fontSize: 13, color: "var(--text-dim)", marginTop: 4, marginBottom: 0 }}>
+              Set how each project bills — hourly, or a percentage of the contract per design phase.
+            </p>
+          </div>
+          <button className="btn-secondary" onClick={() => setShowProjectList((s) => !s)}>
+            {showProjectList ? "Hide projects" : `Show projects (${allProjects.length})`}
+          </button>
+        </div>
+
+        {showProjectList && (
+          <table>
+            <thead>
+              <tr>
+                <th>Project</th>
+                <th>Client</th>
+                <th>Billing model</th>
+                <th className="money">Contract value</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {allProjects.map((p) => (
+                <tr key={p.id}>
+                  <td className="table-value">{p.name}</td>
+                  <td style={{ color: "var(--text-dim)" }}>{p.clients?.name ?? "—"}</td>
+                  <td>
+                    <span className="badge">{BILLING_TYPE_LABEL[p.billing_type] ?? p.billing_type}</span>
+                  </td>
+                  <td className="money table-value figure">{p.contract_value ? `$${Number(p.contract_value).toFixed(2)}` : "—"}</td>
+                  <td>
+                    <button className="btn-secondary" onClick={() => setEditingProjectBillingId(p.id)} style={{ padding: "6px 12px" }}>
+                      Edit billing
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {editingProjectBillingId && (
+        <ProjectBillingSetup
+          projectId={editingProjectBillingId}
+          onClose={() => setEditingProjectBillingId(null)}
+          onSaved={handleBillingSetupSaved}
+        />
+      )}
+
+      <MilestoneBilling
+        projects={milestoneProjects}
+        selected={phaseSelected}
+        onToggleSelected={(phaseId, checked) => setPhaseSelected((s) => ({ ...s, [phaseId]: checked }))}
+        onToggleReady={handleToggleReady}
+        onEditProject={(projectId) => setEditingProjectBillingId(projectId)}
+      />
+
       {unassignedProjects.length > 0 && (
         <div className="panel" style={{ padding: 20, marginBottom: "var(--space-group)" }}>
           <div className="panel-title" style={{ marginBottom: 4 }}>
@@ -226,17 +432,6 @@ export default function BillingBoardPage() {
               </button>
             </div>
           ))}
-          <form onSubmit={handleCreateClient} style={{ display: "flex", gap: 8, marginTop: 16 }}>
-            <input
-              placeholder="New client name"
-              value={newClientName}
-              onChange={(e) => setNewClientName(e.target.value)}
-              style={{ padding: 8, background: "var(--floor)", color: "var(--text)", border: "1px solid var(--line)", flex: 1 }}
-            />
-            <button type="submit" className="btn-secondary">
-              + New client
-            </button>
-          </form>
         </div>
       )}
 

@@ -26,6 +26,7 @@ export interface Client {
   company_name: string | null;
   contact_name: string | null;
   contact_email: string | null;
+  contact_phone: string | null;
   billing_address: string | null;
   default_hourly_rate: number | null;
   clickup_crm_task_id: string | null;
@@ -39,10 +40,21 @@ export interface Project {
   clickup_list_id: string | null;
   name: string;
   current_phase: string | null;
-  billing_type: string | null;
+  billing_type: "hourly" | "percentage_phase" | "fixed_fee" | "retainer" | "pro_bono";
   hourly_rate: number | null;
+  contract_value: number | null;
   is_active: boolean;
   last_synced_at: string | null;
+}
+
+export interface ProjectPhaseBilling {
+  id: string;
+  project_id: string;
+  phase_name: string;
+  percent_of_contract: number;
+  status: "not_started" | "ready_to_bill" | "billed";
+  invoice_line_item_id: string | null;
+  sort_order: number;
 }
 
 export interface Invoice {

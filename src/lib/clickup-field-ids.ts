@@ -69,6 +69,34 @@ export const PROJECT_SUMMARY_FIELDS = {
   contractValue: "9bfc010c-591a-4311-987e-f43673f2a336", // currency
 } as const;
 
+// "Billing Model" dropdown option IDs (PROJECT_SUMMARY_FIELDS.billingModel) —
+// mapped to this app's internal `projects.billing_type` values. Percentage of
+// Construction Cost and Hybrid Phase-Based both map to percentage_phase;
+// fixed_fee/retainer/pro_bono sync and display but don't get Billing Board
+// treatment yet (only hourly and percentage_phase have real logic so far).
+export const BILLING_MODEL_OPTIONS: Record<string, string> = {
+  "673d4bec-ecd0-4f91-a919-4a56799ccc97": "hourly", // Hourly
+  "36b9dea8-f8f4-4ec2-948c-e2f6327d2dad": "fixed_fee", // Fixed Fee Lump Sum
+  "aac7d309-57c5-4fae-86df-10064217bd89": "percentage_phase", // Percentage of Construction Cost
+  "0ae33715-8021-4e45-8e3a-4b5c4e03d505": "percentage_phase", // Hybrid Phase-Based Fixed Plus Hourly CA
+  "d2fc87a8-eb14-4db1-b1f5-209a191cadb4": "retainer", // Retainer
+  "35a69505-8ec3-435e-9fe2-db00bbf03a75": "pro_bono", // Pro Bono
+  "b2603325-3db2-4e23-9a22-35adfc713d3e": "pro_bono", // Speculative / No Fee
+};
+
+// Default AIA-style phase breakdown seeded onto a project the moment it's
+// set to percentage_phase — edited per-project to match the actual signed
+// fee agreement, since real contracts vary.
+export const DEFAULT_PHASE_BREAKDOWN: { phaseName: string; percentOfContract: number }[] = [
+  { phaseName: "Pre-Design", percentOfContract: 5 },
+  { phaseName: "Schematic Design", percentOfContract: 15 },
+  { phaseName: "Design Development", percentOfContract: 20 },
+  { phaseName: "Construction Documents", percentOfContract: 30 },
+  { phaseName: "Permitting", percentOfContract: 5 },
+  { phaseName: "Bidding", percentOfContract: 5 },
+  { phaseName: "Construction Administration", percentOfContract: 20 },
+];
+
 // Custom field IDs on the CRM list (901314847597) — task_type "Client Account".
 export const CRM_FIELDS = {
   clientStatus: "e2ef60f1-51b5-4c1b-9a4f-ea4e40d5ceb5", // drop_down

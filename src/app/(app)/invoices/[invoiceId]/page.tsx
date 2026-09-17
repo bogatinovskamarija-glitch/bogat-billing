@@ -13,14 +13,14 @@ function fmtDate(d: string | null): string {
 export default async function InvoiceDetailPage({ params }: { params: { invoiceId: string } }) {
   const { data: invoice } = await supabaseAdmin
     .from("invoices")
-    .select("*, clients(name, contact_name, billing_address)")
+    .select("*, clients(name, contact_name, contact_phone, contact_email, billing_address)")
     .eq("id", params.invoiceId)
     .single();
   if (!invoice) notFound();
 
   const { data: lineItems } = await supabaseAdmin
     .from("invoice_line_items")
-    .select("task_name, hours, hourly_rate, amount, projects(name)")
+    .select("task_name, hours, hourly_rate, amount, phase_billing_id, projects(name)")
     .eq("invoice_id", params.invoiceId)
     .order("sort_order");
 
@@ -91,6 +91,9 @@ export default async function InvoiceDetailPage({ params }: { params: { invoiceI
               <div style={{ fontSize: 10, letterSpacing: 1, color: "var(--paper-label)" }}>BILLED TO</div>
               <div style={{ fontSize: 13, fontWeight: 600 }}>{invoice.clients?.name ?? "—"}</div>
               {invoice.clients?.contact_name && <div style={{ fontSize: 12 }}>{invoice.clients.contact_name}</div>}
+              {invoice.clients?.billing_address && <div style={{ fontSize: 12 }}>{invoice.clients.billing_address}</div>}
+              {invoice.clients?.contact_email && <div style={{ fontSize: 12 }}>{invoice.clients.contact_email}</div>}
+              {invoice.clients?.contact_phone && <div style={{ fontSize: 12 }}>{invoice.clients.contact_phone}</div>}
             </div>
             <div>
               <div style={{ fontSize: 10, letterSpacing: 1, color: "var(--paper-label)" }}>ISSUED</div>
@@ -128,10 +131,10 @@ export default async function InvoiceDetailPage({ params }: { params: { invoiceI
                 <tr key={i} style={{ borderBottom: "1px solid var(--paper-row)" }}>
                   <td style={{ padding: "8px 0", color: "var(--paper-ink)" }}>{item.task_name}</td>
                   <td className="money figure" style={{ padding: "8px 0" }}>
-                    {Number(item.hours).toFixed(1)}
+                    {item.phase_billing_id ? "—" : Number(item.hours).toFixed(1)}
                   </td>
                   <td className="money figure" style={{ padding: "8px 0" }}>
-                    ${Number(item.hourly_rate).toFixed(2)}
+                    {item.phase_billing_id ? "—" : `$${Number(item.hourly_rate).toFixed(2)}`}
                   </td>
                   <td className="money figure" style={{ padding: "8px 0", fontWeight: 600 }}>
                     ${Number(item.amount).toFixed(2)}

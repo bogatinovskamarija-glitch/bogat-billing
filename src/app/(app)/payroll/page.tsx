@@ -9,11 +9,15 @@ interface Employee {
   email: string | null;
   role_title: string | null;
   employee_type: "w2_hourly" | "w2_salary" | "1099" | "owner_draw";
+  pay_frequency: "weekly" | "biweekly" | "monthly";
   clickup_user_id: string | null;
   hourly_rate: number | null;
   annual_salary: number | null;
   filing_status: string;
   dependents_amount_annual: number;
+  pretax_401k_percent: number;
+  pretax_section125_per_period: number;
+  pto_accrual_hours_per_period: number;
   pto_balance_hours: number;
   is_active: boolean;
 }
@@ -47,12 +51,19 @@ const EMPLOYEE_TYPE_LABEL: Record<string, string> = {
   owner_draw: "Owner (Draws)",
 };
 
+const PAY_FREQUENCY_LABEL: Record<string, string> = {
+  weekly: "Weekly",
+  biweekly: "Biweekly",
+  monthly: "Monthly",
+};
+
 function emptyEmployeeForm() {
   return {
     name: "",
     email: "",
     roleTitle: "",
     employeeType: "w2_salary" as Employee["employee_type"],
+    payFrequency: "weekly" as Employee["pay_frequency"],
     clickupUserId: "",
     hourlyRate: "",
     annualSalary: "",
@@ -64,14 +75,38 @@ function emptyEmployeeForm() {
   };
 }
 
+function employeeToForm(e: Employee): ReturnType<typeof emptyEmployeeForm> {
+  return {
+    name: e.name,
+    email: e.email ?? "",
+    roleTitle: e.role_title ?? "",
+    employeeType: e.employee_type,
+    payFrequency: e.pay_frequency ?? "weekly",
+    clickupUserId: e.clickup_user_id ?? "",
+    hourlyRate: e.hourly_rate?.toString() ?? "",
+    annualSalary: e.annual_salary?.toString() ?? "",
+    filingStatus: e.filing_status,
+    dependentsAmountAnnual: e.dependents_amount_annual?.toString() ?? "0",
+    pretax401kPercent: e.pretax_401k_percent?.toString() ?? "0",
+    pretaxSection125PerPeriod: e.pretax_section125_per_period?.toString() ?? "0",
+    ptoAccrualHoursPerPeriod: e.pto_accrual_hours_per_period?.toString() ?? "0",
+  };
+}
+
 export default function PayrollPage() {
   const [tab, setTab] = useState<"runs" | "employees">("runs");
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [runs, setRuns] = useState<PayRun[]>([]);
   const [activeRun, setActiveRun] = useState<{ run: PayRun; paystubs: Paystub[] } | null>(null);
   const [showAddEmployee, setShowAddEmployee] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyEmployeeForm());
   const [creatingRun, setCreatingRun] = useState(false);
+  const [showNewRun, setShowNewRun] = useState(false);
+  const [runForm, setRunForm] = useState(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return { payFrequency: "weekly" as "weekly" | "biweekly" | "monthly", periodStart: today, periodEnd: today, payDate: today };
+  });
 
   const loadEmployees = useCallback(async () => {
     const res = await fetch("/api/employees");
@@ -98,21 +133,26 @@ export default function PayrollPage() {
 
   async function handleCreateRun() {
     setCreatingRun(true);
-    const now = new Date();
-    const day = now.getDate();
-    const periodStart = day <= 15 ? new Date(now.getFullYear(), now.getMonth(), 1) : new Date(now.getFullYear(), now.getMonth(), 16);
-    const periodEnd = day <= 15 ? new Date(now.getFullYear(), now.getMonth(), 15) : new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    const fmt = (d: Date) => d.toISOString().slice(0, 10);
-
     const res = await fetch("/api/payroll/runs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ periodStart: fmt(periodStart), periodEnd: fmt(periodEnd), payDate: fmt(now) }),
+      body: JSON.stringify(runForm),
     });
     const data = await res.json();
     setCreatingRun(false);
+    setShowNewRun(false);
     await loadRuns();
     if (data.run) openRun(data.run.id);
+  }
+
+  const PRESET_DAYS: Record<"weekly" | "biweekly" | "monthly", number> = { weekly: 7, biweekly: 14, monthly: 30 };
+
+  function applyFrequency(freq: "weekly" | "biweekly" | "monthly") {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - (PRESET_DAYS[freq] - 1));
+    const fmt = (d: Date) => d.toISOString().slice(0, 10);
+    setRunForm({ payFrequency: freq, periodStart: fmt(start), periodEnd: fmt(end), payDate: fmt(end) });
   }
 
   async function handleUpdatePto(stubId: string, hours: number) {
@@ -131,24 +171,46 @@ export default function PayrollPage() {
     await Promise.all([loadRuns(), openRun(activeRun.run.id)]);
   }
 
-  async function handleAddEmployee(e: React.FormEvent) {
+  async function handleSaveEmployee(e: React.FormEvent) {
     e.preventDefault();
-    await fetch("/api/employees", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        hourlyRate: form.hourlyRate ? Number(form.hourlyRate) : null,
-        annualSalary: form.annualSalary ? Number(form.annualSalary) : null,
-        dependentsAmountAnnual: Number(form.dependentsAmountAnnual),
-        pretax401kPercent: Number(form.pretax401kPercent),
-        pretaxSection125PerPeriod: Number(form.pretaxSection125PerPeriod),
-        ptoAccrualHoursPerPeriod: Number(form.ptoAccrualHoursPerPeriod),
-      }),
-    });
+    const payload = {
+      ...form,
+      hourlyRate: form.hourlyRate ? Number(form.hourlyRate) : null,
+      annualSalary: form.annualSalary ? Number(form.annualSalary) : null,
+      dependentsAmountAnnual: Number(form.dependentsAmountAnnual),
+      pretax401kPercent: Number(form.pretax401kPercent),
+      pretaxSection125PerPeriod: Number(form.pretaxSection125PerPeriod),
+      ptoAccrualHoursPerPeriod: Number(form.ptoAccrualHoursPerPeriod),
+    };
+    if (editingId) {
+      await fetch(`/api/employees/${editingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } else {
+      await fetch("/api/employees", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    }
     setForm(emptyEmployeeForm());
     setShowAddEmployee(false);
+    setEditingId(null);
     await loadEmployees();
+  }
+
+  function startEdit(emp: Employee) {
+    setForm(employeeToForm(emp));
+    setEditingId(emp.id);
+    setShowAddEmployee(true);
+  }
+
+  function startAdd() {
+    setForm(emptyEmployeeForm());
+    setEditingId(null);
+    setShowAddEmployee((s) => !s);
   }
 
   const inputStyle = { padding: 8, background: "var(--floor)", color: "var(--text)", border: "1px solid var(--line)", width: "100%" };
@@ -174,13 +236,13 @@ export default function PayrollPage() {
       {tab === "employees" && (
         <div>
           <div style={{ marginBottom: 16 }}>
-            <button className="btn-primary" onClick={() => setShowAddEmployee((s) => !s)}>
+            <button className="btn-primary" onClick={startAdd}>
               {showAddEmployee ? "Cancel" : "+ Add Employee"}
             </button>
           </div>
 
           {showAddEmployee && (
-            <form onSubmit={handleAddEmployee} className="panel" style={{ padding: 20, marginBottom: 20, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+            <form onSubmit={handleSaveEmployee} className="panel" style={{ padding: 20, marginBottom: 20, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
               <div>
                 <label className="label">Name</label>
                 <input required value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} style={inputStyle} />
@@ -195,7 +257,21 @@ export default function PayrollPage() {
                   <option value="w2_salary">W-2 Salary</option>
                   <option value="w2_hourly">W-2 Hourly</option>
                   <option value="1099">1099 Contractor</option>
-                  <option value="owner_draw">Owner (Draws)</option>
+                  <option value="owner_draw">Owner (Draws) — no paystub</option>
+                </select>
+                {form.employeeType === "owner_draw" && (
+                  <p style={{ fontSize: 11, color: "var(--oxide)", marginTop: 4, marginBottom: 0 }}>
+                    This profile is skipped by Pay Runs entirely — no tax withholding, no paystub. Use W-2
+                    Hourly or W-2 Salary if you want a real paystub generated.
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="label">Pay frequency</label>
+                <select value={form.payFrequency} onChange={(e) => setForm((f) => ({ ...f, payFrequency: e.target.value as any }))} style={inputStyle}>
+                  <option value="weekly">Weekly</option>
+                  <option value="biweekly">Biweekly</option>
+                  <option value="monthly">Monthly</option>
                 </select>
               </div>
               <div>
@@ -236,7 +312,7 @@ export default function PayrollPage() {
               </div>
               <div style={{ display: "flex", alignItems: "flex-end" }}>
                 <button type="submit" className="btn-primary" style={{ width: "100%" }}>
-                  Save employee
+                  {editingId ? "Save changes" : "Save employee"}
                 </button>
               </div>
             </form>
@@ -248,9 +324,11 @@ export default function PayrollPage() {
                 <tr>
                   <th>Name</th>
                   <th>Type</th>
+                  <th>Pay frequency</th>
                   <th>Filing status</th>
                   <th className="money">Rate</th>
                   <th className="money">PTO balance</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -261,12 +339,18 @@ export default function PayrollPage() {
                       <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{e.role_title}</div>
                     </td>
                     <td>{EMPLOYEE_TYPE_LABEL[e.employee_type]}</td>
+                    <td style={{ color: "var(--text-dim)" }}>{e.employee_type.startsWith("w2") ? PAY_FREQUENCY_LABEL[e.pay_frequency] : "—"}</td>
                     <td style={{ color: "var(--text-dim)" }}>{e.employee_type.startsWith("w2") ? e.filing_status : "—"}</td>
                     <td className="money table-value figure">
                       {e.employee_type === "w2_hourly" && e.hourly_rate ? `$${e.hourly_rate}/hr` : ""}
                       {e.employee_type === "w2_salary" && e.annual_salary ? `$${e.annual_salary}/yr` : ""}
                     </td>
                     <td className="money table-value figure">{e.pto_balance_hours.toFixed(1)}</td>
+                    <td>
+                      <button className="btn-secondary" onClick={() => startEdit(e)} style={{ padding: "6px 12px" }}>
+                        Edit
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -278,10 +362,70 @@ export default function PayrollPage() {
       {tab === "runs" && !activeRun && (
         <div>
           <div style={{ marginBottom: 16 }}>
-            <button className="btn-primary" onClick={handleCreateRun} disabled={creatingRun}>
-              {creatingRun ? "Creating…" : "+ New Pay Run (current period)"}
+            <button className="btn-primary" onClick={() => setShowNewRun((s) => !s)}>
+              {showNewRun ? "Cancel" : "+ New Pay Run"}
             </button>
           </div>
+
+          {showNewRun && (
+            <div className="panel" style={{ padding: 20, marginBottom: 20 }}>
+              <div className="panel-title" style={{ marginBottom: 12 }}>
+                Pick the pay frequency
+              </div>
+              <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+                <button className={`btn-secondary ${runForm.payFrequency === "weekly" ? "active" : ""}`} onClick={() => applyFrequency("weekly")}>
+                  Weekly (last 7 days)
+                </button>
+                <button className={`btn-secondary ${runForm.payFrequency === "biweekly" ? "active" : ""}`} onClick={() => applyFrequency("biweekly")}>
+                  Biweekly (last 14 days)
+                </button>
+                <button className={`btn-secondary ${runForm.payFrequency === "monthly" ? "active" : ""}`} onClick={() => applyFrequency("monthly")}>
+                  Monthly (last 30 days)
+                </button>
+              </div>
+              <p style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 0, marginBottom: 16 }}>
+                Only active employees whose own profile is set to this pay frequency will be included in this run.
+              </p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
+                <div>
+                  <label className="label">Period start</label>
+                  <input
+                    type="date"
+                    value={runForm.periodStart}
+                    onChange={(e) => setRunForm((f) => ({ ...f, periodStart: e.target.value }))}
+                    style={{ padding: 8, background: "var(--floor)", color: "var(--text)", border: "1px solid var(--line)", width: "100%" }}
+                  />
+                </div>
+                <div>
+                  <label className="label">Period end</label>
+                  <input
+                    type="date"
+                    value={runForm.periodEnd}
+                    onChange={(e) => setRunForm((f) => ({ ...f, periodEnd: e.target.value }))}
+                    style={{ padding: 8, background: "var(--floor)", color: "var(--text)", border: "1px solid var(--line)", width: "100%" }}
+                  />
+                </div>
+                <div>
+                  <label className="label">Pay date</label>
+                  <input
+                    type="date"
+                    value={runForm.payDate}
+                    onChange={(e) => setRunForm((f) => ({ ...f, payDate: e.target.value }))}
+                    style={{ padding: 8, background: "var(--floor)", color: "var(--text)", border: "1px solid var(--line)", width: "100%" }}
+                  />
+                </div>
+              </div>
+              <p style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 0, marginBottom: 16 }}>
+                Hourly pay pulls real ClickUp time tracked between these two dates. Tax withholding is
+                annualized based on the pay frequency selected above, so make sure it matches — dates alone
+                don't control it anymore.
+              </p>
+              <button className="btn-primary" onClick={handleCreateRun} disabled={creatingRun}>
+                {creatingRun ? "Creating…" : "Create Pay Run"}
+              </button>
+            </div>
+          )}
+
           <div className="panel">
             <table>
               <thead>
@@ -341,6 +485,16 @@ export default function PayrollPage() {
               )}
             </div>
           </div>
+
+          {activeRun.paystubs.length === 0 && (
+            <div className="panel" style={{ padding: 20 }}>
+              <p style={{ color: "var(--text-dim)", margin: 0 }}>
+                No paystubs on this run. Pay Runs only generate paystubs for active W-2 or 1099 employees —
+                anyone set to "Owner (Draws)" is skipped on purpose (no withholding, no paystub). Check your
+                employee types on the Employees tab.
+              </p>
+            </div>
+          )}
 
           {activeRun.paystubs.map((stub) => (
             <div key={stub.id} className="panel" style={{ padding: 20, marginBottom: 16 }}>

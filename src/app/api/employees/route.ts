@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
       email: body.email ?? null,
       role_title: body.roleTitle ?? null,
       employee_type: body.employeeType,
+      pay_frequency: body.payFrequency ?? "weekly",
       clickup_user_id: body.clickupUserId ?? null,
       hourly_rate: body.hourlyRate ?? null,
       annual_salary: body.annualSalary ?? null,

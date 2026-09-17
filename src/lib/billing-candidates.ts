@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "./supabase";
 import { listTasksByStatus, getTaskTimeEntries, getTaskComments, billableHours } from "./clickup";
 import { buildProgressNarrative } from "./narrative";
+import type { ProjectPhaseBilling } from "./supabase";
 
 // Known limitation (see plan §4): "done" detection only recognizes these two
 // ClickUp statuses, the ones observed on Arraigo. A project list using a
@@ -137,6 +138,58 @@ export async function getCandidatesForClient(
     accumulatedTotal: Math.round(accumulatedTotal * 100) / 100,
     taskCount,
   };
+}
+
+export interface MilestonePhase extends ProjectPhaseBilling {
+  amount: number;
+}
+
+export interface MilestoneProject {
+  projectId: string;
+  projectName: string;
+  currentPhase: string | null;
+  contractValue: number;
+  clientId: string;
+  clientName: string;
+  phases: MilestonePhase[];
+}
+
+// Active percentage_phase projects with a client and contract value set, plus
+// their phase breakdown — the Billing Board's Milestone Billing section.
+// Unlike getCandidatesForClient this never touches ClickUp: phases and their
+// percentages live entirely in Supabase, keyed off the project's own row.
+export async function getMilestoneProjects(): Promise<MilestoneProject[]> {
+  const { data: projects } = await supabaseAdmin
+    .from("projects")
+    .select("id, name, current_phase, contract_value, client_id, clients(id, name)")
+    .eq("is_active", true)
+    .eq("billing_type", "percentage_phase")
+    .not("client_id", "is", null);
+
+  const results: MilestoneProject[] = [];
+  for (const project of (projects || []) as any[]) {
+    const contractValue = Number(project.contract_value) || 0;
+    const { data: phases } = await supabaseAdmin
+      .from("project_phase_billing")
+      .select("*")
+      .eq("project_id", project.id)
+      .order("sort_order");
+
+    results.push({
+      projectId: project.id,
+      projectName: project.name,
+      currentPhase: project.current_phase,
+      contractValue,
+      clientId: project.client_id,
+      clientName: project.clients?.name ?? "—",
+      phases: (phases || []).map((p) => ({
+        ...p,
+        amount: Math.round(contractValue * (Number(p.percent_of_contract) / 100) * 100) / 100,
+      })),
+    });
+  }
+
+  return results;
 }
 
 export { getInvoicedTaskMap };

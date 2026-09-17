@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { postJournalEntry } from "@/lib/ledger";
 
-interface SelectedTask {
+interface SelectedTaskItem {
+  kind?: "task";
   clickupTaskId: string;
   clickupListId: string;
   projectId: string;
@@ -15,9 +16,22 @@ interface SelectedTask {
   progressNarrative: string;
 }
 
+// A milestone-billing line — a percentage of a project's contract value tied
+// to one design phase, not a ClickUp task. No hours/rate to show on the PDF.
+interface SelectedPhaseItem {
+  kind: "phase";
+  phaseBillingId: string;
+  projectId: string;
+  phaseName: string;
+  percentOfContract: number;
+  amount: number;
+}
+
+type SelectedItem = SelectedTaskItem | SelectedPhaseItem;
+
 interface ClientSelection {
   clientId: string;
-  items: SelectedTask[];
+  items: SelectedItem[];
 }
 
 async function nextInvoiceNumber(): Promise<string> {
@@ -48,7 +62,7 @@ export async function POST(req: NextRequest) {
   }
 
   const created: { clientId: string; invoiceId: string; invoiceNumber: string }[] = [];
-  const skipped: { clickupTaskId: string; reason: string }[] = [];
+  const skipped: { id: string; reason: string }[] = [];
 
   for (const selection of body.selections) {
     const items = selection.items;
@@ -59,7 +73,9 @@ export async function POST(req: NextRequest) {
     const dueDate = new Date(today);
     dueDate.setDate(dueDate.getDate() + 30); // Net 30, per the mockup's sample invoice
 
-    const closedTimes = items.map((i) => Number(i.closedDate)).filter((n) => Number.isFinite(n) && n > 0);
+    const closedTimes = items
+      .map((i) => (i.kind === "phase" ? NaN : Number(i.closedDate)))
+      .filter((n) => Number.isFinite(n) && n > 0);
     const periodStart = closedTimes.length ? new Date(Math.min(...closedTimes)).toISOString().slice(0, 10) : null;
     const periodEnd = closedTimes.length ? new Date(Math.max(...closedTimes)).toISOString().slice(0, 10) : null;
 
@@ -83,11 +99,41 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (invoiceError || !invoice) {
-      skipped.push(...items.map((i) => ({ clickupTaskId: i.clickupTaskId, reason: "invoice creation failed" })));
+      skipped.push(
+        ...items.map((i) => ({ id: i.kind === "phase" ? i.phaseBillingId : i.clickupTaskId, reason: "invoice creation failed" }))
+      );
       continue;
     }
 
     for (const [index, item] of items.entries()) {
+      if (item.kind === "phase") {
+        const { data: line, error: lineError } = await supabaseAdmin
+          .from("invoice_line_items")
+          .insert({
+            invoice_id: invoice.id,
+            project_id: item.projectId,
+            phase_billing_id: item.phaseBillingId,
+            task_name: `${item.phaseName} (${item.percentOfContract}% of contract)`,
+            phase: item.phaseName,
+            hours: 0,
+            hourly_rate: null,
+            amount: item.amount,
+            narrative_source: "raw_comments",
+            sort_order: index,
+          })
+          .select("id")
+          .single();
+        if (lineError || !line) {
+          skipped.push({ id: item.phaseBillingId, reason: "already invoiced" });
+          continue;
+        }
+        await supabaseAdmin
+          .from("project_phase_billing")
+          .update({ status: "billed", invoice_line_item_id: line.id })
+          .eq("id", item.phaseBillingId);
+        continue;
+      }
+
       const { error: lineError } = await supabaseAdmin.from("invoice_line_items").insert({
         invoice_id: invoice.id,
         project_id: item.projectId,
@@ -103,7 +149,7 @@ export async function POST(req: NextRequest) {
         sort_order: index,
       });
       if (lineError) {
-        skipped.push({ clickupTaskId: item.clickupTaskId, reason: "already invoiced" });
+        skipped.push({ id: item.clickupTaskId, reason: "already invoiced" });
       }
     }
 

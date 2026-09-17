@@ -6,6 +6,7 @@ const FIELD_MAP: Record<string, string> = {
   email: "email",
   roleTitle: "role_title",
   employeeType: "employee_type",
+  payFrequency: "pay_frequency",
   clickupUserId: "clickup_user_id",
   hourlyRate: "hourly_rate",
   annualSalary: "annual_salary",

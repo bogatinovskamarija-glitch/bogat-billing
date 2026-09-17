@@ -7,12 +7,26 @@ import {
   FilingStatus,
 } from "./payroll-tax";
 
-const PERIODS_PER_YEAR = 24; // semi-monthly
+export type PayFrequency = "weekly" | "biweekly" | "semi_monthly" | "monthly";
+
+// Explicit, not inferred from date length — a run's frequency is chosen up
+// front (and matched against each employee's own pay_frequency), so this is
+// deterministic even if the dates get nudged. This matters for correctness,
+// not just convenience: the IRS percentage method annualizes taxable wages
+// by periods-per-year, so getting this wrong overstates or understates
+// annual income and mis-withholds.
+const PERIODS_PER_YEAR: Record<PayFrequency, number> = {
+  weekly: 52,
+  biweekly: 26,
+  semi_monthly: 24,
+  monthly: 12,
+};
 
 export interface Employee {
   id: string;
   name: string;
   employee_type: "w2_hourly" | "w2_salary" | "1099" | "owner_draw";
+  pay_frequency: PayFrequency;
   clickup_user_id: string | null;
   hourly_rate: number | null;
   annual_salary: number | null;
@@ -121,10 +135,12 @@ export async function computePaystub(
   periodStart: string,
   periodEnd: string,
   payDate: string,
+  payFrequency: PayFrequency,
   options: { ptoHoursUsed?: number; manualGrossOverride?: number } = {}
 ): Promise<ComputedPaystub> {
   const ytd = await getYtdTotals(employee.id, payDate);
   const ptoHoursUsed = options.ptoHoursUsed ?? 0;
+  const periodsPerYear = PERIODS_PER_YEAR[payFrequency];
 
   let regularHours = 0;
   let overtimeHours = 0;
@@ -139,7 +155,7 @@ export async function computePaystub(
     }
     grossPay = regularHours * rate + overtimeHours * rate * 1.5 + ptoHoursUsed * rate;
   } else if (employee.employee_type === "w2_salary") {
-    grossPay = (employee.annual_salary ?? 0) / PERIODS_PER_YEAR;
+    grossPay = (employee.annual_salary ?? 0) / periodsPerYear;
   } else if (employee.employee_type === "1099") {
     grossPay = options.manualGrossOverride ?? 0;
   }
@@ -190,7 +206,7 @@ export async function computePaystub(
     otherIncomeAnnual: employee.other_income_annual,
     deductionsAnnual: employee.deductions_annual,
     extraWithholdingPerPeriod: employee.extra_withholding_per_period,
-    periodsPerYear: PERIODS_PER_YEAR,
+    periodsPerYear,
   });
 
   const fica = calculateFica(ficaWagesThisPeriod, ytd.ytdFicaWages);

@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const { data: invoice, error } = await supabaseAdmin
     .from("invoices")
-    .select("*, clients(name, contact_name, billing_address)")
+    .select("*, clients(name, contact_name, contact_phone, billing_address)")
     .eq("id", params.id)
     .single();
   if (error || !invoice) {
@@ -17,7 +17,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
   const { data: lineItems } = await supabaseAdmin
     .from("invoice_line_items")
-    .select("task_name, hours, hourly_rate, amount, projects(name)")
+    .select("task_name, hours, hourly_rate, amount, phase_billing_id, projects(name)")
     .eq("invoice_id", params.id)
     .order("sort_order");
 
@@ -33,6 +33,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     periodEnd: invoice.period_end,
     clientName: invoice.clients?.name ?? "—",
     contactName: invoice.clients?.contact_name ?? null,
+    contactPhone: invoice.clients?.contact_phone ?? null,
     billingAddress: invoice.clients?.billing_address ?? null,
     projectNames: projectNames || "—",
     subtotal: Number(invoice.subtotal),
@@ -40,8 +41,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     totalAmount: Number(invoice.total_amount),
     lineItems: (lineItems || []).map((l: any) => ({
       taskName: l.task_name,
-      hours: Number(l.hours),
-      hourlyRate: Number(l.hourly_rate),
+      hours: l.phase_billing_id ? null : Number(l.hours),
+      hourlyRate: l.phase_billing_id ? null : Number(l.hourly_rate),
       amount: Number(l.amount),
     })),
   };

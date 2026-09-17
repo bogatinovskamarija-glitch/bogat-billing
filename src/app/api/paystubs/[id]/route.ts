@@ -9,7 +9,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const { data: stub, error: stubError } = await supabaseAdmin
     .from("paystubs")
-    .select("*, pay_runs(id, period_start, period_end, pay_date, status)")
+    .select("*, pay_runs(id, period_start, period_end, pay_date, status, pay_frequency)")
     .eq("id", params.id)
     .single();
   if (stubError || !stub) return NextResponse.json({ error: "Paystub not found" }, { status: 404 });
@@ -25,6 +25,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     stub.pay_runs.period_start,
     stub.pay_runs.period_end,
     stub.pay_runs.pay_date,
+    stub.pay_runs.pay_frequency,
     { ptoHoursUsed: body.ptoHoursUsed, manualGrossOverride: body.manualGrossOverride }
   );
 
