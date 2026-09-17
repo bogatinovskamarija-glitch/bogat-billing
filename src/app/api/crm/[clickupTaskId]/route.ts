@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "../../../../lib/supabase";
 
 const CADENCE_DAYS: Record<string, number> = { A: 14, B: 21, C: 30 };
 

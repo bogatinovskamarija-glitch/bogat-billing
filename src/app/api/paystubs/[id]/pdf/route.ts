@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
-import { supabaseAdmin } from "@/lib/supabase";
-import PaystubDocument, { PaystubPdfData } from "@/pdf/PaystubDocument";
+import { supabaseAdmin } from "../../../../../lib/supabase";
+import PaystubDocument, { PaystubPdfData } from "../../../../../pdf/PaystubDocument";
 
 export const runtime = "nodejs";
 

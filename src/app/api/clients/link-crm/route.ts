@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
-import { getTask, getCustomFieldValue } from "@/lib/clickup";
-import { CRM_FIELDS } from "@/lib/clickup-field-ids";
+import { supabaseAdmin } from "../../../../lib/supabase";
+import { getTask, getCustomFieldValue } from "../../../../lib/clickup";
+import { CRM_FIELDS } from "../../../../lib/clickup-field-ids";
 
 // Creates a billing `clients` row from an existing ClickUp CRM contact,
 // instead of typing a client's identity from scratch — CRM stays the one

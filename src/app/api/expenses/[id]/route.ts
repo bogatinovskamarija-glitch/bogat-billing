@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "../../../../lib/supabase";
 
 // Recategorize (or edit date/description/amount) before confirming — once
 // an expense is confirmed/posted, edit via a manual adjusting entry instead.

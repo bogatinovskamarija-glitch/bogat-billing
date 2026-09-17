@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import ScreenHeader from "../../../components/ScreenHeader";
-import type { Deal, Stage } from "@/app/api/pipeline/route";
+import type { Deal, Stage } from "../../../app/api/pipeline/route";
 
 const STAGES: { key: Stage; label: string; probability: number }[] = [
   { key: "lead", label: "Lead", probability: 0.1 },

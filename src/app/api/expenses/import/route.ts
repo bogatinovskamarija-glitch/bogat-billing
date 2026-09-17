@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { parseCsv } from "@/lib/csv-parse";
-import { suggestAccountCode } from "@/lib/expense-categorizer";
-import { supabaseAdmin } from "@/lib/supabase";
+import { parseCsv } from "../../../../lib/csv-parse";
+import { suggestAccountCode } from "../../../../lib/expense-categorizer";
+import { supabaseAdmin } from "../../../../lib/supabase";
 
 function parseDate(raw: string): string | null {
   // Handles M/D/YYYY (Chase) and YYYY-MM-DD alike.

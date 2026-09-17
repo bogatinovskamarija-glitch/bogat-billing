@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "../../../lib/supabase";
 
 export async function GET(req: NextRequest) {
   const month = req.nextUrl.searchParams.get("month"); // first-of-month, e.g. 2026-09-01

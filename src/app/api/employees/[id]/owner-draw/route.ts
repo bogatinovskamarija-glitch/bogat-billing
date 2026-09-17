@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { postJournalEntry } from "@/lib/ledger";
+import { postJournalEntry } from "../../../../../lib/ledger";
 
 // A distribution, not a wage — no tax withholding, doesn't touch the
 // payroll tax engine at all. Whether owner's draws are the right treatment

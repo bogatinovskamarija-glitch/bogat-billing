@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
-import { computePaystub, Employee } from "@/lib/payroll-run";
+import { supabaseAdmin } from "../../../../lib/supabase";
+import { computePaystub, Employee } from "../../../../lib/payroll-run";
 
 export async function GET() {
   const { data, error } = await supabaseAdmin.from("pay_runs").select("*").order("period_start", { ascending: false });

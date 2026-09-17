@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "../../../../../lib/supabase";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const { data: run, error } = await supabaseAdmin.from("pay_runs").select("*").eq("id", params.id).single();

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { listAllTasks, getCustomFieldValue, getCustomFieldNumber, resolveDropdownLabel } from "@/lib/clickup";
-import { LISTS, LEADS_FIELDS } from "@/lib/clickup-field-ids";
+import { listAllTasks, getCustomFieldValue, getCustomFieldNumber, resolveDropdownLabel } from "../../../lib/clickup";
+import { LISTS, LEADS_FIELDS } from "../../../lib/clickup-field-ids";
 
 export type Stage = "lead" | "qualified" | "proposal_sent" | "won" | "lost";
 

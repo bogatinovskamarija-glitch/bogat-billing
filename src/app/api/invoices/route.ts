@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
-import { postJournalEntry } from "@/lib/ledger";
+import { supabaseAdmin } from "../../../lib/supabase";
+import { postJournalEntry } from "../../../lib/ledger";
 
 interface SelectedTaskItem {
   kind?: "task";

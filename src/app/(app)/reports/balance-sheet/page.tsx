@@ -1,5 +1,5 @@
 import ScreenHeader from "../../../../components/ScreenHeader";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "../../../../lib/supabase";
 
 export const dynamic = "force-dynamic";
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
-import { getCandidatesForClient, getInvoicedTaskMap, getTaskOverrides, getBillableEmployees, getMilestoneProjects, BoardTab, CandidateClient } from "@/lib/billing-candidates";
+import { supabaseAdmin } from "../../../lib/supabase";
+import { getCandidatesForClient, getInvoicedTaskMap, getTaskOverrides, getBillableEmployees, getMilestoneProjects, BoardTab, CandidateClient } from "../../../lib/billing-candidates";
 
 // Aggregated Billing Board: every client's active-project candidate tasks,
 // grouped, in one response — the mockup's single multi-client board rather

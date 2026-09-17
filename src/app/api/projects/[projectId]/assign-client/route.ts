@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "../../../../../lib/supabase";
 
 // Manually links a synced project to a client — needed for projects whose
 // ClickUp "Client" relationship isn't set yet (e.g. pre-revenue/speculative

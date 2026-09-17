@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "../../../lib/supabase";
 
 // Lightweight project listing for the Billing Board's "Project Billing
 // Setup" picker — every active, client-assigned project with its current

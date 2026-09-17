@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
-import { postJournalEntry } from "@/lib/ledger";
+import { supabaseAdmin } from "../../../../lib/supabase";
+import { postJournalEntry } from "../../../../lib/ledger";
 
 // Bulk-confirms every categorized-but-not-yet-posted expense that has a
 // category assigned (skips any still missing one rather than guessing).

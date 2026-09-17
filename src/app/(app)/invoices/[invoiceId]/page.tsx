@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "../../../../lib/supabase";
 import InvoiceActions from "../../../../components/InvoiceActions";
 
 export const dynamic = "force-dynamic";

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
-import { postJournalEntry } from "@/lib/ledger";
+import { supabaseAdmin } from "../../../../../../lib/supabase";
+import { postJournalEntry } from "../../../../../../lib/ledger";
 
 // Locks the run and posts one aggregated GL entry for it:
 //   Dr Wages Expense (total gross) + Dr Payroll Tax Expense (employer share)

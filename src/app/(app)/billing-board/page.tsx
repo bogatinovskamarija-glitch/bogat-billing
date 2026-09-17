@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import ScreenHeader from "../../../components/ScreenHeader";
-import type { CandidateClient, BoardTab, MilestoneProject, MilestonePhase } from "@/lib/billing-candidates";
-import type { Client } from "@/lib/supabase";
+import type { CandidateClient, BoardTab, MilestoneProject, MilestonePhase } from "../../../lib/billing-candidates";
+import type { Client } from "../../../lib/supabase";
 import ClientForm, { clientToForm, emptyClientForm, ClientFormValues } from "../../../components/ClientForm";
 import MilestoneBilling from "../../../components/MilestoneBilling";
 import ProjectBillingSetup from "../../../components/ProjectBillingSetup";

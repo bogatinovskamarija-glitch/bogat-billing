@@ -1,8 +1,8 @@
 import Link from "next/link";
 import ScreenHeader from "../../../components/ScreenHeader";
 import RevenueChart, { MonthBucket } from "../../../components/RevenueChart";
-import { supabaseAdmin } from "@/lib/supabase";
-import { getCandidatesForClient, getInvoicedTaskMap, getTaskOverrides, getBillableEmployees } from "@/lib/billing-candidates";
+import { supabaseAdmin } from "../../../lib/supabase";
+import { getCandidatesForClient, getInvoicedTaskMap, getTaskOverrides, getBillableEmployees } from "../../../lib/billing-candidates";
 
 export const dynamic = "force-dynamic";
 

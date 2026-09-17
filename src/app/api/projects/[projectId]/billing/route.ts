@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
-import { DEFAULT_PHASE_BREAKDOWN } from "@/lib/clickup-field-ids";
+import { supabaseAdmin } from "../../../../../lib/supabase";
+import { DEFAULT_PHASE_BREAKDOWN } from "../../../../../lib/clickup-field-ids";
 
 export async function GET(_req: NextRequest, { params }: { params: { projectId: string } }) {
   const { data: project, error } = await supabaseAdmin

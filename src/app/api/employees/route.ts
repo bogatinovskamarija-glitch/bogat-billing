@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "../../../lib/supabase";
 
 export async function GET() {
   const { data, error } = await supabaseAdmin.from("employees").select("*").order("name");

@@ -1,6 +1,6 @@
 "use client";
 
-import type { MilestoneProject, MilestonePhase } from "@/lib/billing-candidates";
+import type { MilestoneProject, MilestonePhase } from "../lib/billing-candidates";
 
 // Canonical phase order, used only to suggest (never auto-set) which phases
 // look ready given ClickUp's Current Phase — a project's own phase table can

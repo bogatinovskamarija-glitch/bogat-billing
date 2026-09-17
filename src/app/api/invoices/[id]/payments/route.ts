@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
-import { postJournalEntry } from "@/lib/ledger";
+import { supabaseAdmin } from "../../../../../lib/supabase";
+import { postJournalEntry } from "../../../../../lib/ledger";
 
 // Records a (possibly partial) payment against an invoice: Dr Cash / Cr
 // Accounts Receivable. Flips the invoice to 'paid' once fully covered,

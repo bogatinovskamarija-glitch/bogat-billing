@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "../../../../lib/supabase";
 
 const FIELD_MAP: Record<string, string> = {
   name: "name",

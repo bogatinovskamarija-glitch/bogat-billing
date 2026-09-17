@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "../../../../../lib/supabase";
 
 // Non-cash status transitions (draft -> sent, or -> void). Paid/partial are
 // only ever set by the /payments route since they carry real cash movement.

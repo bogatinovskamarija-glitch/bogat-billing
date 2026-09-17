@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Client } from "@/lib/supabase";
+import type { Client } from "../lib/supabase";
 
 export interface ClientFormValues {
   name: string;

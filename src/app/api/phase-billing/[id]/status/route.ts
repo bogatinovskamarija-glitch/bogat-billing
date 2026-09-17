@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "../../../../../lib/supabase";
 
 // Toggles a phase between not_started and ready_to_bill — the same
 // deliberate, manual signal that ClickUp's "bill" task status is for hourly

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "../../../../lib/supabase";
 import {
   getList,
   getTask,
@@ -9,9 +9,9 @@ import {
   resolveDropdownLabel,
   normalizeProjectKey,
   ClickUpTaskFull,
-} from "@/lib/clickup";
-import { LISTS, PROJECT_SUMMARY_FIELDS, BILLING_MODEL_OPTIONS, DEFAULT_PHASE_BREAKDOWN } from "@/lib/clickup-field-ids";
-import { KNOWN_PROJECT_LISTS } from "@/lib/known-project-lists";
+} from "../../../../lib/clickup";
+import { LISTS, PROJECT_SUMMARY_FIELDS, BILLING_MODEL_OPTIONS, DEFAULT_PHASE_BREAKDOWN } from "../../../../lib/clickup-field-ids";
+import { KNOWN_PROJECT_LISTS } from "../../../../lib/known-project-lists";
 
 interface LinkedTaskRef {
   id: string;

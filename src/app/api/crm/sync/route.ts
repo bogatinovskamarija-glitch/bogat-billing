@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
-import { listAllTasks } from "@/lib/clickup";
-import { LISTS } from "@/lib/clickup-field-ids";
+import { supabaseAdmin } from "../../../../lib/supabase";
+import { listAllTasks } from "../../../../lib/clickup";
+import { LISTS } from "../../../../lib/clickup-field-ids";
 
 // Ensures every real ClickUp CRM contact has an overlay row (tier/strength/
 // touch dates default to unset). Never overwrites an existing overlay —

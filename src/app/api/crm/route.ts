@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
-import { listAllTasks, getCustomFieldValue, getCustomFieldNumber, resolveDropdownLabel } from "@/lib/clickup";
-import { LISTS, CRM_FIELDS } from "@/lib/clickup-field-ids";
+import { supabaseAdmin } from "../../../lib/supabase";
+import { listAllTasks, getCustomFieldValue, getCustomFieldNumber, resolveDropdownLabel } from "../../../lib/clickup";
+import { LISTS, CRM_FIELDS } from "../../../lib/clickup-field-ids";
 
 export interface CrmContact {
   clickupTaskId: string;

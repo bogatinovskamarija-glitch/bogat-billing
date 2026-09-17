@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { parseCsv } from "@/lib/csv-parse";
+import { parseCsv } from "../../../../lib/csv-parse";
 
 // Chase's checking-account export — auto-detected so the common case needs
 // no manual mapping. Anything else falls back to the flexible mapper.

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "../../../lib/supabase";
 
 // A manual, persisted correction to one task's computed hours/rate on the
 // Billing Board — same trust model as PTO-hours-used on a draft pay run.

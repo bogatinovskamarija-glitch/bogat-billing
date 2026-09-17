@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
-import { postJournalEntry } from "@/lib/ledger";
+import { supabaseAdmin } from "../../../../../lib/supabase";
+import { postJournalEntry } from "../../../../../lib/ledger";
 
 export async function POST(_req: Request, { params }: { params: { id: string } }) {
   const { data: expense, error } = await supabaseAdmin.from("expenses").select("*, accounts(code)").eq("id", params.id).single();

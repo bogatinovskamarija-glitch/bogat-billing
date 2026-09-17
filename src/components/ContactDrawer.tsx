@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { CrmContact } from "@/app/api/crm/route";
+import type { CrmContact } from "../app/api/crm/route";
 
 export default function ContactDrawer({
   contact,

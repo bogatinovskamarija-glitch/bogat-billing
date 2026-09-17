@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
-import { computePaystub, Employee } from "@/lib/payroll-run";
+import { supabaseAdmin } from "../../../../lib/supabase";
+import { computePaystub, Employee } from "../../../../lib/payroll-run";
 
 // Recomputes one paystub (e.g. after editing PTO hours or a 1099 contractor's
 // manual gross amount) — only while its run is still a draft.
