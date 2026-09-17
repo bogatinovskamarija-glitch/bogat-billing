@@ -1,78 +1,239 @@
+/* Bogat OS design tokens — from BOGAT-LEDGER-DESIGN-SPEC.md. Values are locked;
+   do not approximate or introduce colors outside this set. */
 :root {
-  --brand-primary: #242e22;
-  --brand-accent: #3b5237;
-  --brand-white: #ffffff;
-  --brand-text: #2b2926;
-  --brand-sage-light: #d4ddd1;
-  --brand-gold: #c9a84c;
-  --brand-stone: #e8e8e3;
-  --brand-linen: #f5f5f0;
+  /* surfaces, darkest to lightest */
+  --floor: #151b14; /* app floor, page background */
+  --forest: #242e22; /* Deep Forest — panels, cards, nav, table bodies */
+  --raised: #2c372a; /* table headers, group headers, raised rows */
+  --hover: #33402f; /* row hover and selected */
+  --canopy: #3b5237; /* Canopy Green — active nav, batch bars, modal headers */
+  --canopy-lt: #4e6a48; /* borders on canopy fills */
+  --line: #3c4b37; /* 1px borders between components */
+  --line-soft: #313d2e; /* dividers inside a panel / between table rows */
+
+  /* ink */
+  --white: #ffffff; /* screen titles, key figures */
+  --text: #edf2ea; /* body and table values */
+  --text-dim: #a9bca3; /* labels, captions, secondary metadata */
+  --text-faint: #82997c; /* nav group headers, empty-cell dashes */
+
+  /* accents */
+  --moss: #6e8a66; /* chart series 2 */
+  --moss-lite: #a9c4a1; /* THE accent: positive figures, primary buttons, active markers */
+
+  /* functional alert only */
+  --oxide: #d08064; /* overdue, failed sync, unapproved, destructive */
+  --oxide-bg: #3a2620;
+
+  /* invoice document inverts to paper */
+  --paper: #ffffff;
+  --paper-ink: #2b2926;
+  --paper-heading: #242e22;
+  --paper-border: #d4d4cc;
+  --paper-row: #e8e8e3;
+  --paper-label: #63625a;
+
+  /* spacing (4px base) */
+  --space-component: 20px;
+  --space-related: 12px;
+  --space-group: 32px;
+  --space-section: 48px;
 }
 
 * {
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
+  padding: 0;
+}
+
+body {
   font-family: "Montserrat", Helvetica Neue, Helvetica, Arial, sans-serif;
   font-weight: 400;
-  color: var(--brand-text);
-  background: var(--brand-linen);
+  color: var(--text);
+  background:
+    radial-gradient(circle at 80% 10%, rgba(110, 138, 102, 0.16) 0%, transparent 45%),
+    radial-gradient(circle at 10% 90%, rgba(59, 82, 55, 0.14) 0%, transparent 50%),
+    var(--floor);
+  min-height: 100vh;
 }
 
 a {
-  color: var(--brand-accent);
+  color: var(--moss-lite);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* ---- typography scale ---- */
+.screen-title {
+  font-size: clamp(30px, 4vw, 46px);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  text-transform: uppercase;
+  color: var(--white);
+  margin: 0;
+  line-height: 1.05;
+}
+.hero-title {
+  font-size: clamp(36px, 6vw, 62px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  color: var(--white);
+  margin: 0;
+}
+.hero-figure {
+  font-size: 38px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.stat-figure {
+  font-size: 31px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+.panel-title,
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.body-text {
+  font-size: 16px;
+  font-weight: 400;
+}
+.table-value {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.btn,
+button {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.figure,
+.tabular {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+/* ---- structure: radius 0 everywhere, borders never shadows ---- */
+/* Glassmorphism: translucent forest + blur, sharp corners kept (radius 0
+   still applies — glass, not rounded-glass). Needs something behind it to
+   read as glass, which is what the body's radial glow above is for. */
+.panel {
+  background: rgba(36, 46, 34, 0.58);
+  backdrop-filter: blur(18px) saturate(130%);
+  -webkit-backdrop-filter: blur(18px) saturate(130%);
+  border: 1px solid rgba(237, 242, 234, 0.09);
+  border-radius: 0;
 }
 
 table {
   border-collapse: collapse;
   width: 100%;
 }
-
 th,
 td {
   text-align: left;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--brand-stone);
-  vertical-align: top;
+  padding: 12px 16px;
+  vertical-align: middle;
 }
-
 th {
+  background: var(--raised);
+  font-size: 12px;
   font-weight: 600;
-  color: var(--brand-primary);
-  font-size: 0.85rem;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  color: var(--text-dim);
+}
+tbody tr {
+  border-bottom: 1px solid var(--line-soft);
+}
+tbody tr:hover {
+  background: var(--hover);
+}
+td.money,
+th.money {
+  text-align: right;
 }
 
-button {
-  font-family: inherit;
+/* ---- buttons ---- */
+.btn-primary,
+.btn {
+  border-radius: 0;
   cursor: pointer;
+  border: 1px solid transparent;
+  padding: 12px 20px;
 }
-
 .btn-primary {
-  background: var(--brand-primary);
-  color: var(--brand-white);
-  border: none;
-  padding: 10px 20px;
-  border-radius: 4px;
-  font-weight: 600;
+  background: var(--moss-lite);
+  color: var(--floor);
 }
-
 .btn-primary:hover {
-  background: var(--brand-accent);
+  background: #bcd4b5;
 }
-
 .btn-primary:disabled {
-  background: var(--brand-stone);
-  color: #999;
+  background: var(--line);
+  color: var(--text-faint);
   cursor: not-allowed;
 }
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+.btn-secondary:hover {
+  background: var(--hover);
+}
+.btn-secondary.active {
+  background: var(--canopy);
+  border-color: var(--canopy-lt);
+  color: var(--white);
+}
 
-.card {
-  background: var(--brand-white);
-  border: 1px solid var(--brand-stone);
-  border-radius: 6px;
-  padding: 20px;
+/* ---- badges ---- */
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+}
+.badge-positive {
+  background: var(--canopy);
+  border-color: var(--canopy-lt);
+  color: var(--white);
+}
+.badge-alert {
+  background: var(--oxide-bg);
+  border-color: var(--oxide);
+  color: var(--oxide);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
 }

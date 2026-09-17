@@ -10,6 +10,7 @@ export const LISTS = {
   invoices: process.env.CLICKUP_INVOICES_LIST_ID || "901317966819",
   projects: process.env.CLICKUP_PROJECTS_LIST_ID || "901307244510",
   crm: process.env.CLICKUP_CRM_LIST_ID || "901314847597",
+  leads: process.env.CLICKUP_LEADS_LIST_ID || "901326738812",
 };
 
 export const FOLDERS = {
@@ -65,6 +66,24 @@ export const PROJECT_SUMMARY_FIELDS = {
   hourlyRate: "280c8f26-b672-492a-afcf-55cfdb25ce38", // currency
   currentPhase: "37df25ed-29f8-42a2-b783-c82e856a1147", // drop_down
   billingModel: "a220da7a-375b-4ed9-8389-9785726d007f", // drop_down
+  contractValue: "9bfc010c-591a-4311-987e-f43673f2a336", // currency
+} as const;
+
+// Custom field IDs on the CRM list (901314847597) — task_type "Client Account".
+export const CRM_FIELDS = {
+  clientStatus: "e2ef60f1-51b5-4c1b-9a4f-ea4e40d5ceb5", // drop_down
+  clientType: "93ae047f-93fa-4276-ba15-4a4f56b336bc", // drop_down
+  companyName: "28202d1c-add5-424b-a008-df4c2ac27394", // short_text
+  primaryContact: "65f021b0-76cd-4a87-a980-b24c9cf48b02", // short_text
+  totalRevenueLifetime: "035d7577-5231-41e9-b937-aa687d874d47", // currency
+} as const;
+
+// Custom field IDs on the Leads list (901326738812) — task_type "Lead".
+export const LEADS_FIELDS = {
+  companyClientName: "e6e3fa63-2d9d-4c9b-8c5c-bb26fb66dd57", // short_text
+  contactName: "06a59637-85e2-48d4-b449-1a15e2ad49df", // short_text
+  estimatedBudget: "e2e21b1b-3314-4003-a0f5-798553da1b5e", // currency
+  leadSource: "e8161012-8083-4a2d-a54c-150e08474eda", // drop_down
 } as const;
 
 // New Folder-level fields this app adds in Phase D so every task in both

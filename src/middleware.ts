@@ -34,7 +34,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user && isLoginPage) {
-    return NextResponse.redirect(new URL("/billing-review", request.url));
+    return NextResponse.redirect(new URL("/billing-board", request.url));
   }
 
   return response;

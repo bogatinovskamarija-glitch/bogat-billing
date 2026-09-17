@@ -4,10 +4,20 @@ import { createClient } from "@supabase/supabase-js";
 // components). RLS is enabled with no public policies (see
 // supabase/001_init.sql), so every read/write goes through this client,
 // gated by the Supabase Auth session check in middleware.
+//
+// `cache: "no-store"` on the underlying fetch is required, not optional:
+// Next.js persists a Data Cache for fetch() calls to disk (.next/cache) and
+// will keep serving a stale/empty result across dev-server restarts —
+// `export const dynamic = "force-dynamic"` on a page does NOT reliably
+// disable this for fetches made inside a library like supabase-js. Financial
+// data must never be served from that cache.
 export const supabaseAdmin = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_KEY!,
-  { auth: { persistSession: false } }
+  {
+    auth: { persistSession: false },
+    global: { fetch: (url, options) => fetch(url, { ...options, cache: "no-store" }) },
+  }
 );
 
 export interface Client {

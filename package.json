@@ -2,7 +2,7 @@
   "name": "bogat-billing",
   "version": "0.1.0",
   "private": true,
-  "description": "Billing Review + Invoicing for Bogat Architecture & Design",
+  "description": "Bogat OS — accounting, CRM, and payroll for Bogat Architecture & Design, built on ClickUp",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

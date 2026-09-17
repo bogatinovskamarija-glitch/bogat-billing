@@ -1,0 +1,172 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+interface NavItem {
+  num: string;
+  label: string;
+  href: string;
+  badge?: number;
+}
+
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+const NAV: NavGroup[] = [
+  { label: "Financial", items: [{ num: "01", label: "Overview", href: "/overview" }] },
+  {
+    label: "Revenue",
+    items: [
+      { num: "02", label: "Billing Board", href: "/billing-board" },
+      { num: "03", label: "Invoices", href: "/invoices" },
+    ],
+  },
+  {
+    label: "Clients",
+    items: [
+      { num: "04", label: "CRM", href: "/crm" },
+      { num: "05", label: "Pipeline", href: "/pipeline" },
+    ],
+  },
+  { label: "People", items: [{ num: "06", label: "Payroll", href: "/payroll" }] },
+];
+
+export default function Sidebar({
+  invoicesBadge,
+  userName,
+  userRole,
+  lastSyncedLabel,
+}: {
+  invoicesBadge: number;
+  userName: string;
+  userRole: string;
+  lastSyncedLabel: string;
+}) {
+  const pathname = usePathname();
+  const badges: Record<string, number> = { "/invoices": invoicesBadge };
+  const initials = userName
+    .split(" ")
+    .map((p) => p[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  return (
+    <aside
+      style={{
+        width: 254,
+        flexShrink: 0,
+        background: "var(--forest)",
+        borderRight: "1px solid var(--line)",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        position: "sticky",
+        top: 0,
+        height: "100vh",
+      }}
+    >
+      <div>
+        <div style={{ padding: "24px 20px" }}>
+          <img src="/brand/logo-white.png" alt="Bogat OS" style={{ width: 162 }} />
+        </div>
+
+        <nav style={{ padding: "0 20px" }}>
+          {NAV.map((group) => (
+            <div key={group.label} style={{ marginBottom: "var(--space-group)" }}>
+              <div className="label" style={{ color: "var(--text-faint)", marginBottom: 8 }}>
+                {group.label}
+              </div>
+              {group.items.map((item) => {
+                const active = pathname === item.href;
+                const badge = badges[item.href];
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: "10px 8px",
+                      position: "relative",
+                      color: active ? "var(--white)" : "var(--text-dim)",
+                      background: active ? "var(--hover)" : "transparent",
+                      textDecoration: "none",
+                    }}
+                  >
+                    <span
+                      style={{
+                        position: "absolute",
+                        left: -8,
+                        top: 0,
+                        bottom: 0,
+                        width: 3,
+                        background: active ? "var(--moss-lite)" : "transparent",
+                      }}
+                    />
+                    <span style={{ fontSize: 12, color: "var(--text-faint)", width: 16 }}>{item.num}</span>
+                    <span style={{ fontSize: 14, flex: 1, fontWeight: active ? 600 : 400 }}>{item.label}</span>
+                    {badge !== undefined && badge > 0 && (
+                      <span
+                        className="badge"
+                        style={{
+                          background: "var(--raised)",
+                          borderColor: "var(--line)",
+                          color: "var(--text)",
+                          padding: "2px 7px",
+                        }}
+                      >
+                        {badge}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
+        </nav>
+      </div>
+
+      <div style={{ padding: 20, borderTop: "1px solid var(--line)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              background: "var(--raised)",
+              border: "1px solid var(--line)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 12,
+              fontWeight: 600,
+              color: "var(--text)",
+            }}
+          >
+            {initials}
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{userName}</div>
+            <div style={{ fontSize: 11, color: "var(--text-faint)" }}>{userRole}</div>
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--text-faint)" }}>
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: "var(--moss-lite)",
+              animation: "pulse 3.2s ease-in-out infinite",
+            }}
+          />
+          ClickUp synced · {lastSyncedLabel}
+        </div>
+      </div>
+    </aside>
+  );
+}

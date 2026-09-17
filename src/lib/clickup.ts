@@ -35,11 +35,11 @@ export interface ClickUpTask {
   list: { id: string; name: string };
 }
 
-// Tasks in a project list at a given status — used to find billing
-// candidates (status "bill") without pulling every task in the list.
-export async function listTasksByStatus(listId: string, status: string): Promise<ClickUpTask[]> {
+// Tasks in a project list at any of the given statuses (OR) — used to find
+// billing candidates without pulling every task in the list.
+export async function listTasksByStatus(listId: string, statuses: string[]): Promise<ClickUpTask[]> {
   const params = new URLSearchParams({ include_closed: "true", subtasks: "true" });
-  params.append("statuses[]", status);
+  statuses.forEach((s) => params.append("statuses[]", s));
   const data = await clickupFetch<{ tasks: ClickUpTask[] }>(
     `/list/${listId}/task?${params.toString()}`
   );
@@ -70,6 +70,26 @@ export function billableHours(entries: ClickUpTimeEntry[]): number {
     .filter((e) => e.billable)
     .reduce((sum, e) => sum + parseInt(e.duration, 10), 0);
   return Math.round((ms / 1000 / 60 / 60) * 100) / 100;
+}
+
+export function totalHours(entries: ClickUpTimeEntry[]): number {
+  const ms = entries.reduce((sum, e) => sum + parseInt(e.duration, 10), 0);
+  return Math.round((ms / 1000 / 60 / 60) * 100) / 100;
+}
+
+// Workspace-wide time entries for one user over a date range (Payroll) —
+// same endpoint as getTaskTimeEntries, just scoped by assignee+dates instead
+// of task_id.
+export async function getUserTimeEntries(userId: string, startMs: number, endMs: number): Promise<ClickUpTimeEntry[]> {
+  const params = new URLSearchParams({
+    assignee: userId,
+    start_date: String(startMs),
+    end_date: String(endMs),
+  });
+  const data = await clickupFetch<{ data: ClickUpTimeEntry[] }>(
+    `/team/${CLICKUP_TEAM_ID}/time_entries?${params.toString()}`
+  );
+  return data.data;
 }
 
 export interface ClickUpComment {

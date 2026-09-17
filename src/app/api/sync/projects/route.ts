@@ -69,6 +69,9 @@ export async function POST() {
     const currentPhase = summaryTask
       ? resolveDropdownLabel(summaryTask, PROJECT_SUMMARY_FIELDS.currentPhase)
       : null;
+    const contractValue = summaryTask
+      ? (getCustomFieldValue(summaryTask, PROJECT_SUMMARY_FIELDS.contractValue) as number | null)
+      : null;
 
     await supabaseAdmin.from("projects").upsert(
       {
@@ -78,6 +81,7 @@ export async function POST() {
         name: list.name,
         current_phase: currentPhase,
         hourly_rate: hourlyRate,
+        contract_value: contractValue,
         is_active: known.isActive,
         client_id: clientId,
         last_synced_at: new Date().toISOString(),

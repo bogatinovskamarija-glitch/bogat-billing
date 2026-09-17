@@ -24,7 +24,7 @@ export default function LoginPage() {
       setError(error.message);
       return;
     }
-    router.push("/billing-review");
+    router.push("/billing-board");
     router.refresh();
   }
 
@@ -35,32 +35,55 @@ export default function LoginPage() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "var(--brand-primary)",
       }}
     >
-      <form onSubmit={handleSubmit} className="card" style={{ width: 320 }}>
-        <img src="/brand/logo.png" alt="Bogat Architecture" style={{ height: 56, marginBottom: 20 }} />
-        <h1 style={{ fontSize: "1.1rem", marginBottom: 20, color: "var(--brand-primary)" }}>Bogat Billing</h1>
+      <form onSubmit={handleSubmit} className="panel" style={{ width: 380, padding: "48px 40px" }}>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <img src="/brand/logo-white.png" alt="Bogat OS" style={{ width: 140, marginBottom: 16 }} />
+          <h1 className="screen-title" style={{ fontSize: 26, margin: 0 }}>
+            Bogat OS
+          </h1>
+        </div>
 
-        <label style={{ display: "block", fontSize: "0.85rem", marginBottom: 4 }}>Email</label>
+        <label className="label" style={{ display: "block", marginBottom: 6 }}>
+          Email
+        </label>
         <input
           type="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          style={{ width: "100%", padding: 8, marginBottom: 12, border: "1px solid var(--brand-stone)", borderRadius: 4 }}
+          style={{
+            width: "100%",
+            padding: 10,
+            marginBottom: 16,
+            background: "var(--floor)",
+            color: "var(--text)",
+            border: "1px solid var(--line)",
+          }}
         />
 
-        <label style={{ display: "block", fontSize: "0.85rem", marginBottom: 4 }}>Password</label>
+        <label className="label" style={{ display: "block", marginBottom: 6 }}>
+          Password
+        </label>
         <input
           type="password"
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          style={{ width: "100%", padding: 8, marginBottom: 16, border: "1px solid var(--brand-stone)", borderRadius: 4 }}
+          style={{
+            width: "100%",
+            padding: 10,
+            marginBottom: 20,
+            background: "var(--floor)",
+            color: "var(--text)",
+            border: "1px solid var(--line)",
+          }}
         />
 
-        {error && <p style={{ color: "#b23b3b", fontSize: "0.85rem", marginBottom: 12 }}>{error}</p>}
+        {error && (
+          <p style={{ color: "var(--oxide)", fontSize: 13, marginBottom: 16 }}>{error}</p>
+        )}
 
         <button type="submit" className="btn-primary" disabled={loading} style={{ width: "100%" }}>
           {loading ? "Signing in…" : "Sign in"}

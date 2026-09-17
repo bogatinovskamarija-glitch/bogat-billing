@@ -33,3 +33,5 @@ services:
         value: "90130302578"
       - key: CLICKUP_CRM_LIST_ID
         value: "901314847597"
+      - key: CLICKUP_LEADS_LIST_ID
+        value: "901326738812"

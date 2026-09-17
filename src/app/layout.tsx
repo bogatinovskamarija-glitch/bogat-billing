@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Bogat Billing",
-  description: "Billing Review + Invoicing for Bogat Architecture & Design",
+  title: "Bogat OS",
+  description: "Accounting, CRM, and payroll for Bogat Architecture & Design, built on ClickUp",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
