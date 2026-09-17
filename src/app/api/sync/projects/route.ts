@@ -5,6 +5,7 @@ import {
   getTask,
   listAllTasks,
   getCustomFieldValue,
+  getCustomFieldNumber,
   resolveDropdownLabel,
   normalizeProjectKey,
   ClickUpTaskFull,
@@ -63,15 +64,11 @@ export async function POST() {
       }
     }
 
-    const hourlyRate = summaryTask
-      ? (getCustomFieldValue(summaryTask, PROJECT_SUMMARY_FIELDS.hourlyRate) as number | null)
-      : null;
+    const hourlyRate = summaryTask ? getCustomFieldNumber(summaryTask, PROJECT_SUMMARY_FIELDS.hourlyRate) : null;
     const currentPhase = summaryTask
       ? resolveDropdownLabel(summaryTask, PROJECT_SUMMARY_FIELDS.currentPhase)
       : null;
-    const contractValue = summaryTask
-      ? (getCustomFieldValue(summaryTask, PROJECT_SUMMARY_FIELDS.contractValue) as number | null)
-      : null;
+    const contractValue = summaryTask ? getCustomFieldNumber(summaryTask, PROJECT_SUMMARY_FIELDS.contractValue) : null;
 
     await supabaseAdmin.from("projects").upsert(
       {

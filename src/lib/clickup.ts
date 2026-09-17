@@ -170,6 +170,17 @@ export function getCustomFieldValue(task: ClickUpTaskFull, fieldId: string): unk
   return task.custom_fields.find((f) => f.id === fieldId)?.value;
 }
 
+// ClickUp returns currency/number field values as strings over the API —
+// casting them straight to `number` silently produces a string at runtime,
+// which turns `+` into concatenation the moment it's summed. Always go
+// through this to get a real number (or null when genuinely unset).
+export function getCustomFieldNumber(task: ClickUpTaskFull, fieldId: string): number | null {
+  const raw = getCustomFieldValue(task, fieldId);
+  if (raw === null || raw === undefined || raw === "") return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
 // Resolves a dropdown field's stored value (option UUID, or in some legacy
 // fields the option's numeric orderindex) to its human-readable label.
 export function resolveDropdownLabel(

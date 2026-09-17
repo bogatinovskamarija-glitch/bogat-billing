@@ -36,7 +36,7 @@ export default async function InvoicesPage() {
   return (
     <main>
       <ScreenHeader
-        sheetCode="REV-03"
+        sheetCode="REV-06"
         contextLabel="Issued documents"
         title="Invoices"
         actions={

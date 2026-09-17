@@ -41,7 +41,7 @@ export default function CrmPage() {
   return (
     <main>
       <ScreenHeader
-        sheetCode="CLI-04"
+        sheetCode="CLI-08"
         contextLabel="Relationships on the ClickUp CRM list"
         title="CRM"
         actions={

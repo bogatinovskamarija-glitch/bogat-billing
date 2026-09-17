@@ -16,37 +16,48 @@ interface NavGroup {
 }
 
 const NAV: NavGroup[] = [
-  { label: "Financial", items: [{ num: "01", label: "Overview", href: "/overview" }] },
+  {
+    label: "Financial",
+    items: [
+      { num: "01", label: "Overview", href: "/overview" },
+      { num: "02", label: "Profit & Loss", href: "/reports/pnl" },
+      { num: "03", label: "Balance Sheet", href: "/reports/balance-sheet" },
+      { num: "04", label: "Budget", href: "/reports/budget" },
+    ],
+  },
   {
     label: "Revenue",
     items: [
-      { num: "02", label: "Billing Board", href: "/billing-board" },
-      { num: "03", label: "Invoices", href: "/invoices" },
+      { num: "05", label: "Billing Board", href: "/billing-board" },
+      { num: "06", label: "Invoices", href: "/invoices" },
     ],
   },
+  { label: "Expenses", items: [{ num: "07", label: "Expenses", href: "/expenses" }] },
   {
     label: "Clients",
     items: [
-      { num: "04", label: "CRM", href: "/crm" },
-      { num: "05", label: "Pipeline", href: "/pipeline" },
+      { num: "08", label: "CRM", href: "/crm" },
+      { num: "09", label: "Pipeline", href: "/pipeline" },
     ],
   },
-  { label: "People", items: [{ num: "06", label: "Payroll", href: "/payroll" }] },
+  { label: "People", items: [{ num: "10", label: "Payroll", href: "/payroll" }] },
 ];
 
 export default function Sidebar({
   invoicesBadge,
+  expensesBadge,
   userName,
   userRole,
   lastSyncedLabel,
 }: {
   invoicesBadge: number;
+  expensesBadge: number;
   userName: string;
   userRole: string;
   lastSyncedLabel: string;
 }) {
   const pathname = usePathname();
-  const badges: Record<string, number> = { "/invoices": invoicesBadge };
+  const badges: Record<string, number> = { "/invoices": invoicesBadge, "/expenses": expensesBadge };
   const initials = userName
     .split(" ")
     .map((p) => p[0])

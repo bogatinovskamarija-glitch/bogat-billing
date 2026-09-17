@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { postJournalEntry } from "@/lib/ledger";
 
 interface SelectedTask {
   clickupTaskId: string;
@@ -117,6 +118,20 @@ export async function POST(req: NextRequest) {
         .from("invoices")
         .update({ subtotal: actualSubtotal, total_amount: actualSubtotal })
         .eq("id", invoice.id);
+    }
+
+    if (actualSubtotal > 0) {
+      const journalEntryId = await postJournalEntry(
+        today.toISOString().slice(0, 10),
+        `Invoice ${invoice.invoice_number} issued`,
+        "invoice_issued",
+        invoice.id,
+        [
+          { accountCode: "1100", debit: actualSubtotal, memo: "Accounts Receivable" },
+          { accountCode: "4000", credit: actualSubtotal, memo: "Design Fee Revenue" },
+        ]
+      );
+      await supabaseAdmin.from("invoices").update({ journal_entry_id: journalEntryId }).eq("id", invoice.id);
     }
 
     created.push({ clientId: selection.clientId, invoiceId: invoice.id, invoiceNumber: invoice.invoice_number });

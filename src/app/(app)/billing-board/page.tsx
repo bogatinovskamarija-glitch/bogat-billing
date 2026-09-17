@@ -172,7 +172,7 @@ export default function BillingBoardPage() {
   return (
     <main>
       <ScreenHeader
-        sheetCode="REV-02"
+        sheetCode="REV-05"
         contextLabel="Completed billable work"
         title="Billing Board"
         actions={

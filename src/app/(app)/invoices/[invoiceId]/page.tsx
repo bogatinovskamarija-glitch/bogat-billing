@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabase";
+import InvoiceActions from "@/components/InvoiceActions";
 
 export const dynamic = "force-dynamic";
 
@@ -46,13 +47,15 @@ export default async function InvoiceDetailPage({ params }: { params: { invoiceI
           <span className="table-value" style={{ color: "var(--white)" }}>
             {invoice.invoice_number}.pdf
           </span>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             <a href={`/api/invoices/${invoice.id}/pdf`} target="_blank" className="btn-secondary" style={{ display: "inline-block" }}>
               Download
             </a>
-            <button className="btn-primary" disabled title="Email sending isn't wired up yet — download and send manually">
-              Send to Client
-            </button>
+            <InvoiceActions
+              invoiceId={invoice.id}
+              status={invoice.status}
+              balanceDue={Number(invoice.total_amount) - Number(invoice.paid_amount)}
+            />
           </div>
         </div>
 
@@ -150,6 +153,12 @@ export default async function InvoiceDetailPage({ params }: { params: { invoiceI
                   <span className="figure">${Number(invoice.tax_amount).toFixed(2)}</span>
                 </div>
               )}
+              {Number(invoice.paid_amount) > 0 && (
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 12 }}>
+                  <span style={{ color: "var(--paper-label)" }}>Paid to date</span>
+                  <span className="figure">-${Number(invoice.paid_amount).toFixed(2)}</span>
+                </div>
+              )}
               <div
                 style={{
                   display: "flex",
@@ -163,7 +172,7 @@ export default async function InvoiceDetailPage({ params }: { params: { invoiceI
               >
                 <span style={{ fontSize: 10, letterSpacing: 1 }}>BALANCE DUE</span>
                 <span style={{ fontSize: 18, fontWeight: 700 }} className="figure">
-                  ${Number(invoice.total_amount).toFixed(2)}
+                  ${(Number(invoice.total_amount) - Number(invoice.paid_amount)).toFixed(2)}
                 </span>
               </div>
             </div>

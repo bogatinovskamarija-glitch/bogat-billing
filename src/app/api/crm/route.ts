@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { listAllTasks, getCustomFieldValue, resolveDropdownLabel } from "@/lib/clickup";
+import { listAllTasks, getCustomFieldValue, getCustomFieldNumber, resolveDropdownLabel } from "@/lib/clickup";
 import { LISTS, CRM_FIELDS } from "@/lib/clickup-field-ids";
 
 export interface CrmContact {
@@ -34,7 +34,7 @@ export async function GET() {
       primaryContact: (getCustomFieldValue(task, CRM_FIELDS.primaryContact) as string) ?? null,
       clientStatus: resolveDropdownLabel(task, CRM_FIELDS.clientStatus),
       clientType: resolveDropdownLabel(task, CRM_FIELDS.clientType),
-      totalRevenueLifetime: (getCustomFieldValue(task, CRM_FIELDS.totalRevenueLifetime) as number) ?? null,
+      totalRevenueLifetime: getCustomFieldNumber(task, CRM_FIELDS.totalRevenueLifetime),
       supabaseId: overlay?.id ?? null,
       tier: overlay?.tier ?? null,
       strength: overlay?.strength ?? 3,

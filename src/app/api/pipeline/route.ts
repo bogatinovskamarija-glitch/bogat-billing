@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listAllTasks, getCustomFieldValue, resolveDropdownLabel } from "@/lib/clickup";
+import { listAllTasks, getCustomFieldValue, getCustomFieldNumber, resolveDropdownLabel } from "@/lib/clickup";
 import { LISTS, LEADS_FIELDS } from "@/lib/clickup-field-ids";
 
 export type Stage = "lead" | "qualified" | "proposal_sent" | "won" | "lost";
@@ -31,7 +31,7 @@ export async function GET() {
 
   const deals: Deal[] = tasks.map((task) => {
     const stage = STATUS_TO_STAGE[task.status.status] ?? "lead";
-    const value = (getCustomFieldValue(task, LEADS_FIELDS.estimatedBudget) as number) ?? 0;
+    const value = getCustomFieldNumber(task, LEADS_FIELDS.estimatedBudget) ?? 0;
     const companyName = (getCustomFieldValue(task, LEADS_FIELDS.companyClientName) as string) ?? task.name;
     const leadSource = resolveDropdownLabel(task, LEADS_FIELDS.leadSource);
     const daysInStage = Math.floor((Date.now() - Number(task.date_updated)) / 86400000);

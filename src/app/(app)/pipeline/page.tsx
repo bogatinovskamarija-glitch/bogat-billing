@@ -36,7 +36,7 @@ export default function PipelinePage() {
 
   return (
     <main>
-      <ScreenHeader sheetCode="CLI-05" contextLabel="Deals on the ClickUp Leads list" title="Pipeline" />
+      <ScreenHeader sheetCode="CLI-09" contextLabel="Deals on the ClickUp Leads list" title="Pipeline" />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 1, marginBottom: "var(--space-group)" }}>
         <div className="panel" style={{ padding: 20 }}>

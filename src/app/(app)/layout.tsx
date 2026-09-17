@@ -29,10 +29,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .limit(1)
     .maybeSingle();
 
+  const { data: pendingExpenses } = await supabaseAdmin.from("expenses").select("id").eq("status", "uncategorized");
+
   return (
     <div style={{ display: "flex", minHeight: "100vh" }}>
       <Sidebar
         invoicesBadge={overdueInvoices?.length ?? 0}
+        expensesBadge={pendingExpenses?.length ?? 0}
         userName="Maria Bogat"
         userRole="Principal"
         lastSyncedLabel={relativeTime(lastSync?.last_synced_at ?? null)}
