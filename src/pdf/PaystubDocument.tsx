@@ -1,7 +1,8 @@
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
+import { LOGO_BUFFER } from "./brand";
 
 const styles = StyleSheet.create({
-  page: { padding: 44, fontFamily: "Helvetica", fontSize: 9, color: "#2B2926" },
+  page: { padding: 44, fontFamily: "Montserrat", fontSize: 9, color: "#2B2926" },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", borderBottomWidth: 2, borderBottomColor: "#242E22", paddingBottom: 14, marginBottom: 18 },
   logo: { width: 110 },
   title: { fontSize: 16, fontWeight: 700, color: "#242E22", textAlign: "right" },
@@ -63,7 +64,7 @@ export default function PaystubDocument({ data }: { data: PaystubPdfData }) {
     <Document>
       <Page size="LETTER" style={styles.page}>
         <View style={styles.header}>
-          <Image src={process.cwd() + "/public/brand/logo-forest.png"} style={styles.logo} />
+          <Image src={LOGO_BUFFER} style={styles.logo} />
           <View>
             <Text style={styles.title}>PAY STATEMENT</Text>
             <Text style={styles.companyBlock}>
