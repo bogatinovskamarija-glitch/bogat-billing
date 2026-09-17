@@ -1,0 +1,78 @@
+:root {
+  --brand-primary: #242e22;
+  --brand-accent: #3b5237;
+  --brand-white: #ffffff;
+  --brand-text: #2b2926;
+  --brand-sage-light: #d4ddd1;
+  --brand-gold: #c9a84c;
+  --brand-stone: #e8e8e3;
+  --brand-linen: #f5f5f0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Montserrat", Helvetica Neue, Helvetica, Arial, sans-serif;
+  font-weight: 400;
+  color: var(--brand-text);
+  background: var(--brand-linen);
+}
+
+a {
+  color: var(--brand-accent);
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--brand-stone);
+  vertical-align: top;
+}
+
+th {
+  font-weight: 600;
+  color: var(--brand-primary);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--brand-primary);
+  color: var(--brand-white);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.btn-primary:hover {
+  background: var(--brand-accent);
+}
+
+.btn-primary:disabled {
+  background: var(--brand-stone);
+  color: #999;
+  cursor: not-allowed;
+}
+
+.card {
+  background: var(--brand-white);
+  border: 1px solid var(--brand-stone);
+  border-radius: 6px;
+  padding: 20px;
+}

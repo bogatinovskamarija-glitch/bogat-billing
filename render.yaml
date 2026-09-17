@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: bogat-billing
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: "invoices"
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      - key: CLICKUP_API_KEY
+        sync: false
+      - key: CLICKUP_TEAM_ID
+        value: "9006080499"
+      - key: CLICKUP_INVOICES_LIST_ID
+        value: "901317966819"
+      - key: CLICKUP_PROJECTS_LIST_ID
+        value: "901307244510"
+      - key: CLICKUP_ACTIVE_PROJECTS_FOLDER_ID
+        value: "901311447111"
+      - key: CLICKUP_COMPLETED_PROJECTS_FOLDER_ID
+        value: "90130302578"
+      - key: CLICKUP_CRM_LIST_ID
+        value: "901314847597"
