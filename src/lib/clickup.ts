@@ -52,6 +52,7 @@ export interface ClickUpTimeEntry {
   duration: string; // ms, as a string
   start: string;
   billable: boolean;
+  user: { id: number; username: string } | null;
 }
 
 // Billable/non-billable time entries for one task. ClickUp's `is_billable`

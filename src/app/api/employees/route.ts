@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
       pay_frequency: body.payFrequency ?? "weekly",
       clickup_user_id: body.clickupUserId ?? null,
       hourly_rate: body.hourlyRate ?? null,
+      billing_rate: body.billingRate ?? null,
       annual_salary: body.annualSalary ?? null,
       filing_status: body.filingStatus ?? "single",
       step2_multiple_jobs: body.step2MultipleJobs ?? false,

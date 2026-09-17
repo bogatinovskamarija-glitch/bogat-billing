@@ -17,7 +17,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
   const { data: lineItems } = await supabaseAdmin
     .from("invoice_line_items")
-    .select("task_name, hours, hourly_rate, amount, phase_billing_id, projects(name)")
+    .select("task_name, hours, hourly_rate, amount, phase_billing_id, rate_breakdown, projects(name)")
     .eq("invoice_id", params.id)
     .order("sort_order");
 
@@ -44,6 +44,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       hours: l.phase_billing_id ? null : Number(l.hours),
       hourlyRate: l.phase_billing_id ? null : Number(l.hourly_rate),
       amount: Number(l.amount),
+      rateBreakdown: l.rate_breakdown ?? null,
     })),
   };
 

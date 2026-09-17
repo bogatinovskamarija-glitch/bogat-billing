@@ -14,6 +14,7 @@ interface SelectedTaskItem {
   hourlyRate: number;
   amount: number;
   progressNarrative: string;
+  rateBreakdown: string | null;
 }
 
 // A milestone-billing line — a percentage of a project's contract value tied
@@ -145,6 +146,7 @@ export async function POST(req: NextRequest) {
         hourly_rate: item.hourlyRate,
         amount: item.amount,
         progress_narrative: item.progressNarrative,
+        rate_breakdown: item.rateBreakdown,
         narrative_source: "raw_comments",
         sort_order: index,
       });

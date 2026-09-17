@@ -12,6 +12,7 @@ interface Employee {
   pay_frequency: "weekly" | "biweekly" | "monthly";
   clickup_user_id: string | null;
   hourly_rate: number | null;
+  billing_rate: number | null;
   annual_salary: number | null;
   filing_status: string;
   dependents_amount_annual: number;
@@ -66,6 +67,7 @@ function emptyEmployeeForm() {
     payFrequency: "weekly" as Employee["pay_frequency"],
     clickupUserId: "",
     hourlyRate: "",
+    billingRate: "",
     annualSalary: "",
     filingStatus: "single",
     dependentsAmountAnnual: "0",
@@ -84,6 +86,7 @@ function employeeToForm(e: Employee): ReturnType<typeof emptyEmployeeForm> {
     payFrequency: e.pay_frequency ?? "weekly",
     clickupUserId: e.clickup_user_id ?? "",
     hourlyRate: e.hourly_rate?.toString() ?? "",
+    billingRate: e.billing_rate?.toString() ?? "",
     annualSalary: e.annual_salary?.toString() ?? "",
     filingStatus: e.filing_status,
     dependentsAmountAnnual: e.dependents_amount_annual?.toString() ?? "0",
@@ -176,6 +179,7 @@ export default function PayrollPage() {
     const payload = {
       ...form,
       hourlyRate: form.hourlyRate ? Number(form.hourlyRate) : null,
+      billingRate: form.billingRate ? Number(form.billingRate) : null,
       annualSalary: form.annualSalary ? Number(form.annualSalary) : null,
       dependentsAmountAnnual: Number(form.dependentsAmountAnnual),
       pretax401kPercent: Number(form.pretax401kPercent),
@@ -279,8 +283,14 @@ export default function PayrollPage() {
                 <input value={form.clickupUserId} onChange={(e) => setForm((f) => ({ ...f, clickupUserId: e.target.value }))} style={inputStyle} placeholder="e.g. 57266783" />
               </div>
               <div>
-                <label className="label">Hourly rate</label>
+                <label className="label">Payroll pay rate ($/hr)</label>
                 <input type="number" step="0.01" value={form.hourlyRate} onChange={(e) => setForm((f) => ({ ...f, hourlyRate: e.target.value }))} style={inputStyle} />
+                <p style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 4, marginBottom: 0 }}>What you pay this employee — used by Payroll.</p>
+              </div>
+              <div>
+                <label className="label">Client billing rate ($/hr)</label>
+                <input type="number" step="0.01" value={form.billingRate} onChange={(e) => setForm((f) => ({ ...f, billingRate: e.target.value }))} style={inputStyle} />
+                <p style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 4, marginBottom: 0 }}>What clients are charged for this employee's time — used by the Billing Board.</p>
               </div>
               <div>
                 <label className="label">Annual salary</label>

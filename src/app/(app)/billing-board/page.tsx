@@ -174,6 +174,24 @@ export default function BillingBoardPage() {
     }
   }
 
+  async function handleSetOverride(clickupTaskId: string, field: "hoursOverride" | "rateOverride", value: number) {
+    await fetch("/api/task-billing-overrides", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clickupTaskId, [field]: value }),
+    });
+    await loadBoard(tab);
+  }
+
+  async function handleResetOverride(clickupTaskId: string) {
+    await fetch("/api/task-billing-overrides", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clickupTaskId }),
+    });
+    await loadBoard(tab);
+  }
+
   async function handleAssign(projectId: string) {
     const clientId = assignPicks[projectId];
     if (!clientId) return;
@@ -246,6 +264,7 @@ export default function BillingBoardPage() {
               hourlyRate: t.hourlyRate,
               amount: t.amount,
               progressNarrative: t.progressNarrative,
+              rateBreakdown: t.rateBreakdown,
             });
           }
         })
@@ -675,6 +694,20 @@ export default function BillingBoardPage() {
                           </td>
                           <td className="table-value">
                             {task.taskName}
+                            {task.rateBreakdown && (
+                              <div style={{ fontSize: 12, color: task.hasOverride ? "var(--oxide)" : "var(--text-faint)", marginTop: 2 }}>
+                                {task.rateBreakdown}
+                                {task.hasOverride && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleResetOverride(task.clickupTaskId)}
+                                    style={{ background: "none", border: "none", color: "var(--moss-lite)", cursor: "pointer", padding: 0, marginLeft: 8, fontSize: 12, textDecoration: "underline" }}
+                                  >
+                                    Reset
+                                  </button>
+                                )}
+                              </div>
+                            )}
                             {task.progressNarrative && (
                               <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 2, whiteSpace: "pre-line" }}>
                                 {task.progressNarrative}
@@ -685,8 +718,34 @@ export default function BillingBoardPage() {
                           <td style={{ color: "var(--text-dim)" }}>
                             {task.closedDate ? new Date(Number(task.closedDate)).toLocaleDateString() : "—"}
                           </td>
-                          <td className="money table-value figure">{task.hours.toFixed(1)}</td>
-                          <td className="money table-value figure">${task.hourlyRate.toFixed(0)}</td>
+                          <td className="money">
+                            <input
+                              key={`hours-${task.clickupTaskId}-${task.hours}`}
+                              type="number"
+                              step="0.1"
+                              defaultValue={task.hours}
+                              disabled={task.billingStatus === "invoiced"}
+                              onBlur={(e) => {
+                                const value = Number(e.target.value);
+                                if (Number.isFinite(value) && value !== task.hours) handleSetOverride(task.clickupTaskId, "hoursOverride", value);
+                              }}
+                              style={{ width: 60, padding: 4, background: "var(--floor)", color: "var(--text)", border: "1px solid var(--line)", textAlign: "right" }}
+                            />
+                          </td>
+                          <td className="money">
+                            <input
+                              key={`rate-${task.clickupTaskId}-${task.hourlyRate}`}
+                              type="number"
+                              step="0.01"
+                              defaultValue={task.hourlyRate}
+                              disabled={task.billingStatus === "invoiced"}
+                              onBlur={(e) => {
+                                const value = Number(e.target.value);
+                                if (Number.isFinite(value) && value !== task.hourlyRate) handleSetOverride(task.clickupTaskId, "rateOverride", value);
+                              }}
+                              style={{ width: 70, padding: 4, background: "var(--floor)", color: "var(--text)", border: "1px solid var(--line)", textAlign: "right" }}
+                            />
+                          </td>
                           <td className="money table-value figure">${task.amount.toFixed(2)}</td>
                           <td>
                             {task.billingStatus === "invoiced" ? (

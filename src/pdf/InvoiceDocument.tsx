@@ -20,6 +20,7 @@ const styles = StyleSheet.create({
   colRate: { width: "16%", textAlign: "right" },
   colAmount: { width: "18%", textAlign: "right" },
   headerText: { fontSize: 8, letterSpacing: 1, color: "#63625A" },
+  rateBreakdown: { fontSize: 8, color: "#8A897F", marginTop: 3 },
   totalsBlock: { alignItems: "flex-end", marginTop: 8 },
   totalsRow: { flexDirection: "row", justifyContent: "space-between", width: 220, marginBottom: 6 },
   totalsLabel: { fontSize: 10, color: "#63625A" },
@@ -53,7 +54,7 @@ export interface InvoicePdfData {
   subtotal: number;
   taxAmount: number;
   totalAmount: number;
-  lineItems: { taskName: string; hours: number | null; hourlyRate: number | null; amount: number }[];
+  lineItems: { taskName: string; hours: number | null; hourlyRate: number | null; amount: number; rateBreakdown: string | null }[];
 }
 
 function fmtDate(d: string | null): string {
@@ -113,8 +114,11 @@ export default function InvoiceDocument({ data }: { data: InvoicePdfData }) {
           </View>
           {data.lineItems.map((item, i) => (
             <View style={styles.tableRow} key={i}>
-              <Text style={styles.colDesc}>{item.taskName}</Text>
-              <Text style={styles.colHours}>{item.hours === null ? "—" : item.hours.toFixed(1)}</Text>
+              <View style={styles.colDesc}>
+                <Text>{item.taskName}</Text>
+                {item.rateBreakdown && <Text style={styles.rateBreakdown}>{item.rateBreakdown}</Text>}
+              </View>
+              <Text style={styles.colHours}>{item.hours === null ? "—" : item.hours.toFixed(2)}</Text>
               <Text style={styles.colRate}>{item.hourlyRate === null ? "—" : `$${item.hourlyRate.toFixed(2)}`}</Text>
               <Text style={styles.colAmount}>${item.amount.toFixed(2)}</Text>
             </View>

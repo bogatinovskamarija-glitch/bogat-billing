@@ -2,7 +2,7 @@ import Link from "next/link";
 import ScreenHeader from "@/components/ScreenHeader";
 import RevenueChart, { MonthBucket } from "@/components/RevenueChart";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getCandidatesForClient, getInvoicedTaskMap } from "@/lib/billing-candidates";
+import { getCandidatesForClient, getInvoicedTaskMap, getTaskOverrides, getBillableEmployees } from "@/lib/billing-candidates";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +42,8 @@ async function getRollup() {
     .eq("is_active", true)
     .not("client_id", "is", null);
   const invoicedMap = await getInvoicedTaskMap();
+  const overridesMap = await getTaskOverrides();
+  const employees = await getBillableEmployees();
 
   let wipUnbilled = 0;
   let readyTotal = 0;
@@ -53,10 +55,10 @@ async function getRollup() {
     const clientProjects = (projects || []).filter((p) => p.client_id === client.id);
     if (clientProjects.length === 0) continue;
 
-    const unbilled = await getCandidatesForClient(client, clientProjects, "unbilled", invoicedMap);
+    const unbilled = await getCandidatesForClient(client, clientProjects, "unbilled", invoicedMap, employees, overridesMap);
     wipUnbilled += unbilled.accumulatedTotal;
 
-    const ready = await getCandidatesForClient(client, clientProjects, "ready", invoicedMap);
+    const ready = await getCandidatesForClient(client, clientProjects, "ready", invoicedMap, employees, overridesMap);
     if (ready.taskCount > 0) {
       readyTotal += ready.accumulatedTotal;
       readyClients.add(client.id);

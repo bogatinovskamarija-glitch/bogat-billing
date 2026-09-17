@@ -20,7 +20,7 @@ export default async function InvoiceDetailPage({ params }: { params: { invoiceI
 
   const { data: lineItems } = await supabaseAdmin
     .from("invoice_line_items")
-    .select("task_name, hours, hourly_rate, amount, phase_billing_id, projects(name)")
+    .select("task_name, hours, hourly_rate, amount, phase_billing_id, rate_breakdown, projects(name)")
     .eq("invoice_id", params.invoiceId)
     .order("sort_order");
 
@@ -129,9 +129,14 @@ export default async function InvoiceDetailPage({ params }: { params: { invoiceI
             <tbody>
               {(lineItems || []).map((item: any, i: number) => (
                 <tr key={i} style={{ borderBottom: "1px solid var(--paper-row)" }}>
-                  <td style={{ padding: "8px 0", color: "var(--paper-ink)" }}>{item.task_name}</td>
+                  <td style={{ padding: "8px 0", color: "var(--paper-ink)" }}>
+                    {item.task_name}
+                    {item.rate_breakdown && (
+                      <div style={{ fontSize: 10, color: "var(--paper-label)", marginTop: 2 }}>{item.rate_breakdown}</div>
+                    )}
+                  </td>
                   <td className="money figure" style={{ padding: "8px 0" }}>
-                    {item.phase_billing_id ? "—" : Number(item.hours).toFixed(1)}
+                    {item.phase_billing_id ? "—" : Number(item.hours).toFixed(2)}
                   </td>
                   <td className="money figure" style={{ padding: "8px 0" }}>
                     {item.phase_billing_id ? "—" : `$${Number(item.hourly_rate).toFixed(2)}`}

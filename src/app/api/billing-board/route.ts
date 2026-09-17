@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getCandidatesForClient, getInvoicedTaskMap, getMilestoneProjects, BoardTab, CandidateClient } from "@/lib/billing-candidates";
+import { getCandidatesForClient, getInvoicedTaskMap, getTaskOverrides, getBillableEmployees, getMilestoneProjects, BoardTab, CandidateClient } from "@/lib/billing-candidates";
 
 // Aggregated Billing Board: every client's active-project candidate tasks,
 // grouped, in one response — the mockup's single multi-client board rather
@@ -22,12 +22,14 @@ export async function GET(req: NextRequest) {
   if (projectsError) return NextResponse.json({ error: projectsError.message }, { status: 500 });
 
   const invoicedMap = await getInvoicedTaskMap();
+  const overridesMap = await getTaskOverrides();
+  const employees = await getBillableEmployees();
 
   const results: CandidateClient[] = [];
   for (const client of clients || []) {
     const clientProjects = (projects || []).filter((p) => p.client_id === client.id);
     if (clientProjects.length === 0) continue;
-    const candidate = await getCandidatesForClient(client, clientProjects, tab, invoicedMap);
+    const candidate = await getCandidatesForClient(client, clientProjects, tab, invoicedMap, employees, overridesMap);
     if (candidate.projects.length > 0) results.push(candidate);
   }
 
