@@ -3,10 +3,11 @@ import { LOGO_BUFFER } from "./brand";
 
 const styles = StyleSheet.create({
   page: { padding: 44, fontFamily: "Montserrat", fontSize: 9, color: "#2B2926" },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", borderBottomWidth: 2, borderBottomColor: "#242E22", paddingBottom: 14, marginBottom: 18 },
-  logo: { width: 110 },
-  title: { fontSize: 16, fontWeight: 700, color: "#242E22", textAlign: "right" },
-  companyBlock: { fontSize: 8, color: "#63625A", textAlign: "right", marginTop: 6, lineHeight: 1.5 },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", borderBottomWidth: 2, borderBottomColor: "#242E22", paddingBottom: 18, marginBottom: 22 },
+  logo: { width: 170 },
+  title: { fontSize: 20, fontWeight: 700, color: "#242E22", textAlign: "right" },
+  companyName: { fontSize: 10, fontWeight: 700, color: "#242E22", textAlign: "right", marginTop: 9 },
+  companyBlock: { fontSize: 8, color: "#63625A", textAlign: "right", marginTop: 4, lineHeight: 1.6 },
   metaRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 18 },
   metaLabel: { fontSize: 8, letterSpacing: 1, color: "#63625A", marginBottom: 3 },
   metaValue: { fontSize: 10, marginBottom: 6 },
@@ -18,7 +19,7 @@ const styles = StyleSheet.create({
   netLabel: { fontSize: 9, letterSpacing: 1, color: "#EDF2EA" },
   netValue: { fontSize: 16, fontWeight: 700, color: "#FFFFFF" },
   footer: { marginTop: 24, borderTopWidth: 1, borderTopColor: "#D4D4CC", paddingTop: 10 },
-  footerText: { fontSize: 7, color: "#63625A", marginBottom: 2 },
+  footerText: { fontSize: 7, color: "#63625A", marginBottom: 2, textAlign: "center" },
   twoCol: { flexDirection: "row", gap: 24 },
   col: { flex: 1 },
 });
@@ -67,8 +68,11 @@ export default function PaystubDocument({ data }: { data: PaystubPdfData }) {
           <Image src={LOGO_BUFFER} style={styles.logo} />
           <View>
             <Text style={styles.title}>PAY STATEMENT</Text>
+            <Text style={styles.companyName}>Bogat Architecture &amp; Design LLC</Text>
             <Text style={styles.companyBlock}>
-              BOGAT ARCHITECTURE &amp; DESIGN LLC{"\n"}FORT LAUDERDALE, FLORIDA
+              Fort Lauderdale, FL{"\n"}
+              maria@bogatarchitecture.com{"\n"}
+              (331) 431-2511
             </Text>
           </View>
         </View>

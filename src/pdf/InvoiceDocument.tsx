@@ -3,12 +3,13 @@ import { LOGO_BUFFER } from "./brand";
 
 const styles = StyleSheet.create({
   page: { padding: 48, fontFamily: "Montserrat", fontSize: 10, color: "#2B2926" },
-  letterheadRule: { borderBottomWidth: 2, borderBottomColor: "#242E22", paddingBottom: 16, marginBottom: 20 },
+  letterheadRule: { borderBottomWidth: 2, borderBottomColor: "#242E22", paddingBottom: 20, marginBottom: 24 },
   letterheadRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
-  logo: { width: 120 },
+  logo: { width: 180 },
   invoiceLabel: { fontSize: 9, letterSpacing: 1, color: "#63625A", textAlign: "right" },
-  invoiceNumber: { fontSize: 16, fontWeight: 700, color: "#242E22", textAlign: "right", marginTop: 2 },
-  companyBlock: { fontSize: 9, color: "#63625A", textAlign: "right", marginTop: 8, lineHeight: 1.5 },
+  invoiceNumber: { fontSize: 22, fontWeight: 700, color: "#242E22", textAlign: "right", marginTop: 2 },
+  companyName: { fontSize: 11, fontWeight: 700, color: "#242E22", textAlign: "right", marginTop: 10 },
+  companyBlock: { fontSize: 9, color: "#63625A", textAlign: "right", marginTop: 4, lineHeight: 1.6 },
   metaRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 20 },
   metaCol: { width: "30%" },
   metaLabel: { fontSize: 8, letterSpacing: 1, color: "#63625A", marginBottom: 3 },
@@ -38,7 +39,7 @@ const styles = StyleSheet.create({
   balanceLabel: { fontSize: 9, letterSpacing: 1, color: "#EDF2EA" },
   balanceValue: { fontSize: 16, fontWeight: 700, color: "#FFFFFF" },
   footer: { marginTop: 32, borderTopWidth: 1, borderTopColor: "#D4D4CC", paddingTop: 12 },
-  footerText: { fontSize: 8, color: "#63625A", marginBottom: 3 },
+  footerText: { fontSize: 8, color: "#63625A", marginBottom: 3, textAlign: "center" },
 });
 
 export interface InvoicePdfData {
@@ -73,10 +74,11 @@ export default function InvoiceDocument({ data }: { data: InvoicePdfData }) {
             <View>
               <Text style={styles.invoiceLabel}>INVOICE</Text>
               <Text style={styles.invoiceNumber}>{data.invoiceNumber}</Text>
+              <Text style={styles.companyName}>Bogat Architecture &amp; Design LLC</Text>
               <Text style={styles.companyBlock}>
-                BOGAT ARCHITECTURE & DESIGN LLC{"\n"}
-                FORT LAUDERDALE, FLORIDA{"\n"}
-                MARIA@BOGATARCHITECTURE.COM
+                Fort Lauderdale, FL{"\n"}
+                maria@bogatarchitecture.com{"\n"}
+                (331) 431-2511
               </Text>
             </View>
           </View>
