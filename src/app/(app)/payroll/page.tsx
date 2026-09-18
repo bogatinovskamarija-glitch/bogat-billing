@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import ScreenHeader from "../../../components/ScreenHeader";
+import BarChart from "../../../components/BarChart";
 
 interface Employee {
   id: string;
@@ -21,6 +22,9 @@ interface Employee {
   pto_accrual_hours_per_period: number;
   pto_balance_hours: number;
   is_active: boolean;
+  mailing_address: string | null;
+  bank_name: string | null;
+  bank_account_last4: string | null;
 }
 
 interface PayRun {
@@ -52,6 +56,18 @@ const EMPLOYEE_TYPE_LABEL: Record<string, string> = {
   owner_draw: "Owner (Draws)",
 };
 
+interface EmployeePerformance {
+  employeeId: string;
+  name: string;
+  roleTitle: string | null;
+  employeeType: string;
+  hoursWorked: number;
+  billableHours: number;
+  revenueGenerated: number;
+  cost: number | null;
+  margin: number | null;
+}
+
 const PAY_FREQUENCY_LABEL: Record<string, string> = {
   weekly: "Weekly",
   biweekly: "Biweekly",
@@ -74,6 +90,9 @@ function emptyEmployeeForm() {
     pretax401kPercent: "0",
     pretaxSection125PerPeriod: "0",
     ptoAccrualHoursPerPeriod: "0",
+    mailingAddress: "",
+    bankName: "",
+    bankAccountLast4: "",
   };
 }
 
@@ -93,12 +112,24 @@ function employeeToForm(e: Employee): ReturnType<typeof emptyEmployeeForm> {
     pretax401kPercent: e.pretax_401k_percent?.toString() ?? "0",
     pretaxSection125PerPeriod: e.pretax_section125_per_period?.toString() ?? "0",
     ptoAccrualHoursPerPeriod: e.pto_accrual_hours_per_period?.toString() ?? "0",
+    mailingAddress: e.mailing_address ?? "",
+    bankName: e.bank_name ?? "",
+    bankAccountLast4: e.bank_account_last4 ?? "",
   };
 }
 
+function monthStart(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+}
+
 export default function PayrollPage() {
-  const [tab, setTab] = useState<"runs" | "employees">("runs");
+  const [tab, setTab] = useState<"runs" | "employees" | "performance">("runs");
+  const [perfRange, setPerfRange] = useState({ start: monthStart(), end: new Date().toISOString().slice(0, 10) });
+  const [performance, setPerformance] = useState<EmployeePerformance[]>([]);
+  const [loadingPerformance, setLoadingPerformance] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [ytdByEmployee, setYtdByEmployee] = useState<Record<string, { ytdGross: number; ytdNet: number }>>({});
   const [runs, setRuns] = useState<PayRun[]>([]);
   const [activeRun, setActiveRun] = useState<{ run: PayRun; paystubs: Paystub[] } | null>(null);
   const [showAddEmployee, setShowAddEmployee] = useState(false);
@@ -117,6 +148,16 @@ export default function PayrollPage() {
     setEmployees(data.employees || []);
   }, []);
 
+  const loadYtd = useCallback(async () => {
+    const res = await fetch("/api/payroll/ytd");
+    const data = await res.json();
+    const byId: Record<string, { ytdGross: number; ytdNet: number }> = {};
+    (data.ytd || []).forEach((row: any) => {
+      byId[row.employeeId] = { ytdGross: row.ytdGross, ytdNet: row.ytdNet };
+    });
+    setYtdByEmployee(byId);
+  }, []);
+
   const loadRuns = useCallback(async () => {
     const res = await fetch("/api/payroll/runs");
     const data = await res.json();
@@ -126,7 +167,20 @@ export default function PayrollPage() {
   useEffect(() => {
     loadEmployees();
     loadRuns();
-  }, [loadEmployees, loadRuns]);
+    loadYtd();
+  }, [loadEmployees, loadRuns, loadYtd]);
+
+  const loadPerformance = useCallback(async () => {
+    setLoadingPerformance(true);
+    const res = await fetch(`/api/payroll/performance?start=${perfRange.start}&end=${perfRange.end}`);
+    const data = await res.json();
+    setPerformance(data.performance || []);
+    setLoadingPerformance(false);
+  }, [perfRange]);
+
+  useEffect(() => {
+    if (tab === "performance") loadPerformance();
+  }, [tab, loadPerformance]);
 
   async function openRun(runId: string) {
     const res = await fetch(`/api/payroll/runs/${runId}`);
@@ -171,7 +225,7 @@ export default function PayrollPage() {
     if (!activeRun) return;
     if (!confirm(`Finalize this pay run? ${activeRun.paystubs.length} paystub(s) will be locked and posted to the ledger.`)) return;
     await fetch(`/api/payroll/runs/${activeRun.run.id}/finalize`, { method: "POST" });
-    await Promise.all([loadRuns(), openRun(activeRun.run.id)]);
+    await Promise.all([loadRuns(), openRun(activeRun.run.id), loadYtd()]);
   }
 
   async function handleSaveEmployee(e: React.FormEvent) {
@@ -217,6 +271,15 @@ export default function PayrollPage() {
     setShowAddEmployee((s) => !s);
   }
 
+  const ytdChart = useMemo(
+    () =>
+      employees
+        .map((e) => ({ label: e.name, value: ytdByEmployee[e.id]?.ytdGross ?? 0 }))
+        .filter((d) => d.value > 0)
+        .sort((a, b) => b.value - a.value),
+    [employees, ytdByEmployee]
+  );
+
   const inputStyle = { padding: 8, background: "var(--floor)", color: "var(--text)", border: "1px solid var(--line)", width: "100%" };
 
   return (
@@ -233,12 +296,98 @@ export default function PayrollPage() {
             <button className={`btn-secondary ${tab === "employees" ? "active" : ""}`} onClick={() => setTab("employees")}>
               Employees
             </button>
+            <button className={`btn-secondary ${tab === "performance" ? "active" : ""}`} onClick={() => setTab("performance")}>
+              Performance
+            </button>
           </>
         }
       />
 
+      {tab === "performance" && (
+        <div>
+          <div className="panel" style={{ padding: 20, marginBottom: 20, display: "flex", gap: 12, alignItems: "flex-end" }}>
+            <div>
+              <label className="label" style={{ display: "block", marginBottom: 6 }}>Start</label>
+              <input
+                type="date"
+                value={perfRange.start}
+                onChange={(e) => setPerfRange((r) => ({ ...r, start: e.target.value }))}
+                style={{ padding: 8, background: "var(--floor)", color: "var(--text)", border: "1px solid var(--line)" }}
+              />
+            </div>
+            <div>
+              <label className="label" style={{ display: "block", marginBottom: 6 }}>End</label>
+              <input
+                type="date"
+                value={perfRange.end}
+                onChange={(e) => setPerfRange((r) => ({ ...r, end: e.target.value }))}
+                style={{ padding: 8, background: "var(--floor)", color: "var(--text)", border: "1px solid var(--line)" }}
+              />
+            </div>
+            <button className="btn-secondary" onClick={loadPerformance} disabled={loadingPerformance}>
+              {loadingPerformance ? "Loading…" : "Update"}
+            </button>
+          </div>
+          <p style={{ fontSize: 12, color: "var(--text-faint)", marginTop: -12, marginBottom: 20 }}>
+            Billable hours/revenue come from tasks closed in this range; cost is an approximation (hourly rate × hours worked
+            for W-2 Hourly, doesn't factor an overtime premium; annual salary prorated by days for W-2 Salary). 1099/Owner
+            profiles have no automatic cost basis, so cost/margin show as "—" for them. Wide ranges across many projects can
+            take a while — this pulls real ClickUp data per task, same as the Billing Board.
+          </p>
+          <div className="panel">
+            {loadingPerformance ? (
+              <p style={{ padding: 20, color: "var(--text-dim)" }}>Loading from ClickUp…</p>
+            ) : performance.length === 0 ? (
+              <p style={{ padding: 20, color: "var(--text-dim)" }}>No active employees.</p>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th className="money">Hours worked</th>
+                    <th className="money">Billable hours</th>
+                    <th className="money">Revenue generated</th>
+                    <th className="money">Cost</th>
+                    <th className="money">Margin</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {performance.map((p) => (
+                    <tr key={p.employeeId}>
+                      <td>
+                        <div className="table-value">{p.name}</div>
+                        <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{p.roleTitle ?? EMPLOYEE_TYPE_LABEL[p.employeeType]}</div>
+                      </td>
+                      <td className="money table-value figure">{p.hoursWorked.toFixed(1)}</td>
+                      <td className="money table-value figure">{p.billableHours.toFixed(1)}</td>
+                      <td className="money table-value figure">${p.revenueGenerated.toFixed(2)}</td>
+                      <td className="money table-value figure">{p.cost !== null ? `$${p.cost.toFixed(2)}` : "—"}</td>
+                      <td
+                        className="money table-value figure"
+                        style={{ color: p.margin === null ? "var(--text)" : p.margin >= 0 ? "var(--moss-lite)" : "var(--oxide)" }}
+                      >
+                        {p.margin !== null ? `$${p.margin.toFixed(2)}` : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+
       {tab === "employees" && (
         <div>
+          {ytdChart.length > 1 && (
+            <div className="panel" style={{ padding: 20, marginBottom: 20 }}>
+              <div className="panel-title" style={{ marginBottom: 14 }}>
+                YTD gross by employee
+              </div>
+              <BarChart data={ytdChart} />
+            </div>
+          )}
+
           <div style={{ marginBottom: 16 }}>
             <button className="btn-primary" onClick={startAdd}>
               {showAddEmployee ? "Cancel" : "+ Add Employee"}
@@ -320,6 +469,27 @@ export default function PayrollPage() {
                 <label className="label">Health/dental premium ($/period, pre-tax)</label>
                 <input type="number" step="0.01" value={form.pretaxSection125PerPeriod} onChange={(e) => setForm((f) => ({ ...f, pretaxSection125PerPeriod: e.target.value }))} style={inputStyle} />
               </div>
+              <div style={{ gridColumn: "span 3" }}>
+                <label className="label">Mailing address (shown on paystub)</label>
+                <input value={form.mailingAddress} onChange={(e) => setForm((f) => ({ ...f, mailingAddress: e.target.value }))} style={inputStyle} placeholder="Street, City, State ZIP" />
+              </div>
+              <div>
+                <label className="label">Bank name (paystub)</label>
+                <input value={form.bankName} onChange={(e) => setForm((f) => ({ ...f, bankName: e.target.value }))} style={inputStyle} />
+              </div>
+              <div>
+                <label className="label">Bank account — last 4 digits</label>
+                <input
+                  value={form.bankAccountLast4}
+                  onChange={(e) => setForm((f) => ({ ...f, bankAccountLast4: e.target.value.replace(/\D/g, "").slice(0, 4) }))}
+                  style={inputStyle}
+                  maxLength={4}
+                  placeholder="1234"
+                />
+                <p style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 4, marginBottom: 0 }}>
+                  Only the last 4 digits are ever stored — never the full account number.
+                </p>
+              </div>
               <div style={{ display: "flex", alignItems: "flex-end" }}>
                 <button type="submit" className="btn-primary" style={{ width: "100%" }}>
                   {editingId ? "Save changes" : "Save employee"}
@@ -338,6 +508,8 @@ export default function PayrollPage() {
                   <th>Filing status</th>
                   <th className="money">Rate</th>
                   <th className="money">PTO balance</th>
+                  <th className="money">YTD gross</th>
+                  <th className="money">YTD net</th>
                   <th></th>
                 </tr>
               </thead>
@@ -356,6 +528,8 @@ export default function PayrollPage() {
                       {e.employee_type === "w2_salary" && e.annual_salary ? `$${e.annual_salary}/yr` : ""}
                     </td>
                     <td className="money table-value figure">{e.pto_balance_hours.toFixed(1)}</td>
+                    <td className="money table-value figure">${(ytdByEmployee[e.id]?.ytdGross ?? 0).toFixed(2)}</td>
+                    <td className="money table-value figure">${(ytdByEmployee[e.id]?.ytdNet ?? 0).toFixed(2)}</td>
                     <td>
                       <button className="btn-secondary" onClick={() => startEdit(e)} style={{ padding: "6px 12px" }}>
                         Edit

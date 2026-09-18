@@ -45,6 +45,12 @@ export interface Project {
   contract_value: number | null;
   is_active: boolean;
   last_synced_at: string | null;
+  project_type: string | null;
+  building_type: string | null;
+  start_date: string | null;
+  projected_end_date: string | null;
+  total_construction_budget: number | null;
+  drive_folder_url: string | null;
 }
 
 export interface ProjectPhaseBilling {

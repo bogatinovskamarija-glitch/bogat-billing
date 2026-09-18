@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import ScreenHeader from "../../../../components/ScreenHeader";
+import DonutChart from "../../../../components/DonutChart";
 
 interface Row {
   accountId: string;
@@ -20,6 +21,7 @@ export default function BudgetPage() {
   const [month, setMonth] = useState(currentMonth());
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+  const [recurringMonthlyTotal, setRecurringMonthlyTotal] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -32,6 +34,12 @@ export default function BudgetPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    fetch("/api/expenses/recurring")
+      .then((r) => r.json())
+      .then((d) => setRecurringMonthlyTotal(d.monthlyTotal ?? null));
+  }, []);
 
   async function handleUpdate(accountId: string, value: number) {
     await fetch("/api/budget", {
@@ -47,9 +55,18 @@ export default function BudgetPage() {
 
   return (
     <main>
-      <ScreenHeader sheetCode="FIN-04" contextLabel="Manually entered, compared to real ledger activity" title="Budget" />
+      <ScreenHeader
+        sheetCode="FIN-04"
+        contextLabel="Manually entered, compared to real ledger activity"
+        title="Budget"
+        actions={
+          <button className="btn-secondary" onClick={() => window.print()}>
+            Print
+          </button>
+        }
+      />
 
-      <div style={{ marginBottom: "var(--space-group)" }}>
+      <div className="no-print" style={{ marginBottom: "var(--space-group)" }}>
         <label className="label" style={{ display: "block", marginBottom: 6 }}>
           Month
         </label>
@@ -60,6 +77,9 @@ export default function BudgetPage() {
           style={{ padding: 8, background: "var(--floor)", color: "var(--text)", border: "1px solid var(--line)" }}
         />
       </div>
+      <p className="label" style={{ marginBottom: "var(--space-group)" }}>
+        {new Date(`${month}T00:00:00`).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+      </p>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, marginBottom: "var(--space-group)" }}>
         <div className="panel" style={{ padding: 20 }}>
@@ -81,6 +101,22 @@ export default function BudgetPage() {
           </div>
         </div>
       </div>
+
+      {recurringMonthlyTotal !== null && recurringMonthlyTotal > 0 && (
+        <p style={{ fontSize: 12, color: "var(--text-faint)", marginTop: -20, marginBottom: "var(--space-group)" }}>
+          Reference: ~${recurringMonthlyTotal.toFixed(2)}/mo in detected recurring charges (see Expenses) — use this
+          to sanity-check your budgeted amounts above.
+        </p>
+      )}
+
+      {!loading && rows.filter((r) => r.actual > 0).length > 1 && (
+        <div className="panel no-print" style={{ padding: 20, marginBottom: "var(--space-group)" }}>
+          <div className="panel-title" style={{ marginBottom: 14 }}>
+            Actual spend mix
+          </div>
+          <DonutChart data={rows.filter((r) => r.actual > 0).map((r) => ({ label: r.name, value: r.actual }))} centerLabel="Actual" />
+        </div>
+      )}
 
       <div className="panel">
         {loading ? (

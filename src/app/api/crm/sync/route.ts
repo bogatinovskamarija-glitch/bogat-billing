@@ -7,7 +7,7 @@ import { LISTS } from "../../../../lib/clickup-field-ids";
 // touch dates default to unset). Never overwrites an existing overlay —
 // this only fills in gaps for contacts that are new since the last sync.
 export async function POST() {
-  const tasks = await listAllTasks(LISTS.crm);
+  const tasks = (await listAllTasks(LISTS.crm)).filter((t) => !t.parent);
   const { data: existing } = await supabaseAdmin.from("crm_contacts").select("clickup_task_id");
   const existingIds = new Set((existing || []).map((r) => r.clickup_task_id));
 

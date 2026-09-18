@@ -8,7 +8,7 @@ import { supabaseAdmin } from "../../../lib/supabase";
 export async function GET() {
   const { data, error } = await supabaseAdmin
     .from("projects")
-    .select("id, name, billing_type, contract_value, clients(name)")
+    .select("id, name, billing_type, contract_value, project_type, start_date, projected_end_date, clients(name)")
     .eq("is_active", true)
     .not("client_id", "is", null)
     .order("name");

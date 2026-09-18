@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const { data: stub, error } = await supabaseAdmin
     .from("paystubs")
-    .select("*, employees(name, role_title), pay_runs(period_start, period_end, pay_date)")
+    .select("*, employees(name, role_title, employee_type, hourly_rate, annual_salary, bank_name), pay_runs(period_start, period_end, pay_date)")
     .eq("id", params.id)
     .single();
   if (error || !stub) return NextResponse.json({ error: "Paystub not found" }, { status: 404 });
@@ -16,6 +16,10 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   const data: PaystubPdfData = {
     employeeName: stub.employees?.name ?? "—",
     roleTitle: stub.employees?.role_title ?? null,
+    employeeAddress: stub.employee_address ?? null,
+    hourlyRate: stub.employees?.employee_type === "w2_hourly" ? Number(stub.employees.hourly_rate) || null : null,
+    bankName: stub.employees?.bank_name ?? null,
+    bankAccountLast4: stub.bank_account_last4 ?? null,
     periodStart: stub.pay_runs.period_start,
     periodEnd: stub.pay_runs.period_end,
     payDate: stub.pay_runs.pay_date,

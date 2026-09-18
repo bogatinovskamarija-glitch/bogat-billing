@@ -38,6 +38,9 @@ export async function POST(req: NextRequest) {
       pto_balance_hours: body.ptoBalanceHours ?? 0,
       state: body.state ?? "FL",
       hire_date: body.hireDate ?? null,
+      mailing_address: body.mailingAddress ?? null,
+      bank_name: body.bankName ?? null,
+      bank_account_last4: body.bankAccountLast4 ?? null,
     })
     .select()
     .single();

@@ -57,3 +57,36 @@ export async function postJournalEntry(
 
   return entry.id as string;
 }
+
+export interface JournalLineRow {
+  account_id: string;
+  debit: number;
+  credit: number;
+}
+
+// A plain `.select()` on journal_lines silently caps at Supabase/PostgREST's
+// default 1000-row response limit — invisible until an account crosses that
+// many postings, at which point every report reading this table (Balance
+// Sheet, P&L, Budget) undercounts without any error. Confirmed live: this
+// account's real balance was off by ~$124,900 once journal_lines passed
+// 2,000 rows. Every financial report must page through the full result set
+// instead of a single unbounded `.select()`.
+export async function fetchAllJournalLines(opts: { gte?: string; lte?: string } = {}): Promise<JournalLineRow[]> {
+  const pageSize = 1000;
+  const rows: JournalLineRow[] = [];
+  let from = 0;
+  for (;;) {
+    let query = supabaseAdmin
+      .from("journal_lines")
+      .select("account_id, debit, credit, journal_entries!inner(entry_date)")
+      .range(from, from + pageSize - 1);
+    if (opts.gte) query = query.gte("journal_entries.entry_date", opts.gte);
+    if (opts.lte) query = query.lte("journal_entries.entry_date", opts.lte);
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    rows.push(...((data || []) as unknown as JournalLineRow[]));
+    if (!data || data.length < pageSize) break;
+    from += pageSize;
+  }
+  return rows;
+}

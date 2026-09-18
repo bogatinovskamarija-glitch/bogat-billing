@@ -1,7 +1,15 @@
+import Link from "next/link";
 import ScreenHeader from "../../../components/ScreenHeader";
+import DonutChart from "../../../components/DonutChart";
 import { supabaseAdmin } from "../../../lib/supabase";
 
 export const dynamic = "force-dynamic";
+
+type StatusFilter = "all" | "open" | "overdue";
+
+function isOverdue(status: string, dueDate: string | null, today: string): boolean {
+  return status !== "paid" && status !== "void" && !!dueDate && dueDate < today;
+}
 
 function statusBadge(status: string, dueDate: string | null) {
   const today = new Date().toISOString().slice(0, 10);
@@ -22,16 +30,36 @@ function statusBadge(status: string, dueDate: string | null) {
   );
 }
 
-export default async function InvoicesPage() {
+export default async function InvoicesPage({ searchParams }: { searchParams: { status?: string } }) {
   const { data: invoices } = await supabaseAdmin
     .from("invoices")
     .select("id, invoice_number, status, total_amount, issued_date, due_date, clients(name)")
     .order("created_at", { ascending: false });
 
-  const rows = invoices || [];
-  const billed = rows.filter((i) => i.status !== "void").reduce((s, i) => s + Number(i.total_amount), 0);
-  const collected = rows.filter((i) => i.status === "paid").reduce((s, i) => s + Number(i.total_amount), 0);
+  const allRows = invoices || [];
+  const billed = allRows.filter((i) => i.status !== "void").reduce((s, i) => s + Number(i.total_amount), 0);
+  const collected = allRows.filter((i) => i.status === "paid").reduce((s, i) => s + Number(i.total_amount), 0);
   const outstanding = billed - collected;
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  const nonVoid = allRows.filter((i) => i.status !== "void");
+  const paidAmt = nonVoid.filter((i) => i.status === "paid").reduce((s, i) => s + Number(i.total_amount), 0);
+  const overdueAmt = nonVoid.filter((i) => isOverdue(i.status, i.due_date, today)).reduce((s, i) => s + Number(i.total_amount), 0);
+  const openAmt = nonVoid.filter((i) => i.status !== "paid" && !isOverdue(i.status, i.due_date, today)).reduce((s, i) => s + Number(i.total_amount), 0);
+  const statusMix = [
+    { label: "Paid", value: paidAmt, color: "var(--moss-lite)" },
+    { label: "Overdue", value: overdueAmt, color: "var(--oxide)" },
+    { label: "Open, not yet due", value: openAmt, color: "var(--moss)" },
+  ].filter((d) => d.value > 0);
+
+  const activeFilter: StatusFilter = searchParams.status === "open" || searchParams.status === "overdue" ? searchParams.status : "all";
+  const rows =
+    activeFilter === "all"
+      ? allRows
+      : activeFilter === "overdue"
+        ? allRows.filter((i) => isOverdue(i.status, i.due_date, today))
+        : allRows.filter((i) => i.status !== "paid" && i.status !== "void");
 
   return (
     <main>
@@ -41,9 +69,15 @@ export default async function InvoicesPage() {
         title="Invoices"
         actions={
           <>
-            <button className="btn-secondary active">All</button>
-            <button className="btn-secondary">Open</button>
-            <button className="btn-secondary">Overdue</button>
+            <Link href="/invoices" className={`btn btn-secondary ${activeFilter === "all" ? "active" : ""}`} style={{ display: "inline-block" }}>
+              All
+            </Link>
+            <Link href="/invoices?status=open" className={`btn btn-secondary ${activeFilter === "open" ? "active" : ""}`} style={{ display: "inline-block" }}>
+              Open
+            </Link>
+            <Link href="/invoices?status=overdue" className={`btn btn-secondary ${activeFilter === "overdue" ? "active" : ""}`} style={{ display: "inline-block" }}>
+              Overdue
+            </Link>
             <button className="btn-primary" disabled title="Manual invoice creation lands with Phase B">
               New Invoice
             </button>
@@ -74,6 +108,15 @@ export default async function InvoicesPage() {
           </div>
         </div>
       </div>
+
+      {statusMix.length > 0 && (
+        <div className="panel" style={{ padding: 20, marginBottom: "var(--space-group)" }}>
+          <div className="panel-title" style={{ marginBottom: 14 }}>
+            Status mix
+          </div>
+          <DonutChart data={statusMix} centerLabel="Billed" />
+        </div>
+      )}
 
       {rows.length === 0 ? (
         <div className="panel" style={{ padding: 20 }}>

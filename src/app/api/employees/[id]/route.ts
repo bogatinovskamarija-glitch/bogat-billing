@@ -25,6 +25,9 @@ const FIELD_MAP: Record<string, string> = {
   state: "state",
   isActive: "is_active",
   hireDate: "hire_date",
+  mailingAddress: "mailing_address",
+  bankName: "bank_name",
+  bankAccountLast4: "bank_account_last4",
 };
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {

@@ -2,10 +2,11 @@ import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/render
 import { LOGO_BUFFER } from "./brand";
 
 const styles = StyleSheet.create({
-  page: { padding: 48, fontFamily: "Montserrat", fontSize: 10, color: "#2B2926" },
+  page: { padding: 48, fontFamily: "Montserrat", fontSize: 10, color: "#2B2926", display: "flex", flexDirection: "column" },
   letterheadRule: { borderBottomWidth: 2, borderBottomColor: "#242E22", paddingBottom: 20, marginBottom: 24 },
   letterheadRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   logo: { width: 180 },
+  headerBlock: { width: 240, alignItems: "flex-end" },
   invoiceLabel: { fontSize: 9, letterSpacing: 1, color: "#63625A", textAlign: "right" },
   invoiceNumber: { fontSize: 22, fontWeight: 700, color: "#242E22", textAlign: "right", marginTop: 2 },
   companyName: { fontSize: 11, fontWeight: 700, color: "#242E22", textAlign: "right", marginTop: 10 },
@@ -71,7 +72,7 @@ export default function InvoiceDocument({ data }: { data: InvoicePdfData }) {
         <View style={styles.letterheadRule}>
           <View style={styles.letterheadRow}>
             <Image src={LOGO_BUFFER} style={styles.logo} />
-            <View>
+            <View style={styles.headerBlock}>
               <Text style={styles.invoiceLabel}>INVOICE</Text>
               <Text style={styles.invoiceNumber}>{data.invoiceNumber}</Text>
               <Text style={styles.companyName}>Bogat Architecture &amp; Design LLC</Text>
@@ -144,6 +145,8 @@ export default function InvoiceDocument({ data }: { data: InvoicePdfData }) {
             <Text style={styles.balanceValue}>${data.totalAmount.toFixed(2)}</Text>
           </View>
         </View>
+
+        <View style={{ flexGrow: 1 }} />
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>PAYABLE BY ACH OR CHECK · REMITTANCE DETAIL ON FILE</Text>

@@ -41,6 +41,9 @@ export interface Employee {
   posttax_deductions_per_period: number;
   pto_accrual_hours_per_period: number;
   pto_balance_hours: number;
+  mailing_address: string | null;
+  bank_name: string | null;
+  bank_account_last4: string | null;
 }
 
 interface YtdTotals {

@@ -38,6 +38,10 @@
   --space-related: 12px;
   --space-group: 32px;
   --space-section: 48px;
+
+  /* corner radius — floating glass surfaces */
+  --radius: 16px;
+  --radius-sm: 8px;
 }
 
 * {
@@ -135,16 +139,17 @@ button {
   letter-spacing: 0.01em;
 }
 
-/* ---- structure: radius 0 everywhere, borders never shadows ---- */
-/* Glassmorphism: translucent forest + blur, sharp corners kept (radius 0
-   still applies — glass, not rounded-glass). Needs something behind it to
-   read as glass, which is what the body's radial glow above is for. */
+/* ---- structure: rounded glass, borders never shadows ---- */
+/* Glassmorphism: translucent forest + blur + soft rounded corners. Needs
+   something behind it to read as glass, which is what the body's radial
+   glow above is for. */
 .panel {
   background: rgba(36, 46, 34, 0.58);
   backdrop-filter: blur(18px) saturate(130%);
   -webkit-backdrop-filter: blur(18px) saturate(130%);
   border: 1px solid rgba(237, 242, 234, 0.09);
-  border-radius: 0;
+  border-radius: var(--radius);
+  overflow: hidden;
 }
 
 table {
@@ -179,7 +184,7 @@ th.money {
 /* ---- buttons ---- */
 .btn-primary,
 .btn {
-  border-radius: 0;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   border: 1px solid transparent;
   padding: 12px 20px;
@@ -200,6 +205,7 @@ th.money {
   background: transparent;
   color: var(--text);
   border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
 }
 .btn-secondary:hover {
   background: var(--hover);
@@ -216,6 +222,7 @@ th.money {
   padding: 4px 10px;
   border: 1px solid var(--line);
   color: var(--text-dim);
+  border-radius: var(--radius-sm);
 }
 .badge-positive {
   background: var(--canopy);
@@ -226,6 +233,36 @@ th.money {
   background: var(--oxide-bg);
   border-color: var(--oxide);
   color: var(--oxide);
+}
+
+/* ---- print: remap the dark theme's tokens onto the paper palette, so any
+   page prints legibly without page-by-page overrides ---- */
+@media print {
+  aside,
+  .no-print {
+    display: none !important;
+  }
+  :root {
+    --floor: var(--paper);
+    --forest: var(--paper);
+    --raised: var(--paper-row);
+    --hover: var(--paper-row);
+    --line: var(--paper-border);
+    --line-soft: var(--paper-border);
+    --white: var(--paper-heading);
+    --text: var(--paper-ink);
+    --text-dim: var(--paper-label);
+    --text-faint: var(--paper-label);
+  }
+  body {
+    background: var(--paper) !important;
+  }
+  .panel {
+    background: var(--paper) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid var(--paper-border) !important;
+  }
 }
 
 @keyframes pulse {

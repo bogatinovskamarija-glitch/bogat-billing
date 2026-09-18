@@ -38,6 +38,8 @@ export async function POST(req: NextRequest) {
     await supabaseAdmin.from("paystubs").insert({
       pay_run_id: run.id,
       employee_id: computed.employeeId,
+      employee_address: emp.mailing_address ?? null,
+      bank_account_last4: emp.bank_account_last4 ?? null,
       regular_hours: computed.regularHours,
       overtime_hours: computed.overtimeHours,
       pto_hours_used: computed.ptoHoursUsed,

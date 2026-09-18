@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import ScreenHeader from "../../../components/ScreenHeader";
+import BarChart from "../../../components/BarChart";
+import DonutChart from "../../../components/DonutChart";
 import type { Deal, Stage } from "../../../app/api/pipeline/route";
 
 const STAGES: { key: Stage; label: string; probability: number }[] = [
@@ -23,6 +25,7 @@ export default function PipelinePage() {
   }, []);
 
   const open = deals.filter((d) => d.stage !== "won" && d.stage !== "lost");
+  const outliers = deals.filter((d) => d.isOutlier);
 
   const stats = useMemo(() => {
     const openValue = open.reduce((s, d) => s + d.value, 0);
@@ -33,6 +36,25 @@ export default function PipelinePage() {
     const avgDeal = deals.length > 0 ? deals.reduce((s, d) => s + d.value, 0) / deals.length : 0;
     return { openValue, weighted, wonValue, wonCount: wonThisMonth.length, avgDeal };
   }, [deals, open]);
+
+  const bySource = useMemo(() => {
+    const map = new Map<string, number>();
+    open.forEach((d) => {
+      const key = d.leadSource ?? "Unknown source";
+      map.set(key, (map.get(key) ?? 0) + d.value);
+    });
+    return Array.from(map.entries())
+      .map(([label, value]) => ({ label, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [open]);
+
+  const byStage = useMemo(
+    () =>
+      STAGES.filter((s) => s.key !== "won")
+        .map((s) => ({ label: s.label, value: open.filter((d) => d.stage === s.key).reduce((sum, d) => sum + d.value, 0) }))
+        .filter((d) => d.value > 0),
+    [open]
+  );
 
   return (
     <main>
@@ -68,6 +90,38 @@ export default function PipelinePage() {
         </div>
       </div>
 
+      {outliers.length > 0 && (
+        <div className="panel" style={{ padding: 16, marginBottom: "var(--space-group)", borderColor: "var(--oxide)" }}>
+          <span style={{ color: "var(--oxide)", fontWeight: 700 }}>⚠ {outliers.length} outlier deal{outliers.length === 1 ? "" : "s"} flagged: </span>
+          <span style={{ fontSize: 13, color: "var(--text-dim)" }}>
+            {outliers.map((d) => `${d.companyName} ($${d.value.toLocaleString()})`).join(", ")} — value is far above the rest of
+            the pipeline. Worth double-checking the Estimated Budget field on that deal in ClickUp; it's included in
+            the totals above as-is.
+          </span>
+        </div>
+      )}
+
+      {!loading && (bySource.length > 0 || byStage.length > 0) && (
+        <div style={{ display: "grid", gridTemplateColumns: byStage.length > 0 ? "1fr 1fr" : "1fr", gap: "var(--space-group)", marginBottom: "var(--space-group)" }}>
+          {bySource.length > 0 && (
+            <div className="panel" style={{ padding: 20 }}>
+              <div className="panel-title" style={{ marginBottom: 14 }}>
+                Open pipeline by lead source
+              </div>
+              <BarChart data={bySource} />
+            </div>
+          )}
+          {byStage.length > 0 && (
+            <div className="panel" style={{ padding: 20 }}>
+              <div className="panel-title" style={{ marginBottom: 14 }}>
+                Open pipeline by stage
+              </div>
+              <DonutChart data={byStage} centerLabel="Open" />
+            </div>
+          )}
+        </div>
+      )}
+
       {loading ? (
         <p style={{ color: "var(--text-dim)" }}>Loading deals from ClickUp…</p>
       ) : (
@@ -96,11 +150,12 @@ export default function PipelinePage() {
                   ${stageValue.toLocaleString(undefined, { maximumFractionDigits: 0 })} · {stageDeals.length}
                 </div>
                 {stageDeals.map((d) => (
-                  <div key={d.clickupTaskId} className="panel" style={{ padding: 12, marginBottom: 4 }}>
+                  <div key={d.clickupTaskId} className="panel" style={{ padding: 12, marginBottom: 4, borderColor: d.isOutlier ? "var(--oxide)" : undefined }}>
                     <div className="table-value" style={{ marginBottom: 4 }}>
+                      {d.isOutlier && <span title="Value far above the rest of the pipeline — worth double-checking in ClickUp">⚠ </span>}
                       {d.companyName}
                     </div>
-                    <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 6 }}>
+                    <div style={{ fontSize: 12, color: d.isOutlier ? "var(--oxide)" : "var(--text-dim)", marginBottom: 6 }}>
                       ${d.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

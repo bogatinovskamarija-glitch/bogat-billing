@@ -1,17 +1,15 @@
 import ScreenHeader from "../../../../components/ScreenHeader";
 import { supabaseAdmin } from "../../../../lib/supabase";
+import { fetchAllJournalLines } from "../../../../lib/ledger";
 
 export const dynamic = "force-dynamic";
 
 async function getBalanceSheet(asOf: string) {
   const { data: accounts } = await supabaseAdmin.from("accounts").select("id, name, type, normal_balance");
-  const { data: lines } = await supabaseAdmin
-    .from("journal_lines")
-    .select("account_id, debit, credit, journal_entries!inner(entry_date)")
-    .lte("journal_entries.entry_date", asOf);
+  const lines = await fetchAllJournalLines({ lte: asOf });
 
   const balanceFor = (acct: { id: string; normal_balance: string }) => {
-    const acctLines = (lines || []).filter((l: any) => l.account_id === acct.id);
+    const acctLines = lines.filter((l) => l.account_id === acct.id);
     const debit = acctLines.reduce((s: number, l: any) => s + Number(l.debit), 0);
     const credit = acctLines.reduce((s: number, l: any) => s + Number(l.credit), 0);
     return acct.normal_balance === "debit" ? debit - credit : credit - debit;
@@ -20,13 +18,20 @@ async function getBalanceSheet(asOf: string) {
   const rows = (accounts || []).map((a) => ({ ...a, balance: balanceFor(a) }));
   const assets = rows.filter((r) => r.type === "asset" && r.balance !== 0);
   const liabilities = rows.filter((r) => r.type === "liability" && r.balance !== 0);
-  const equityAccounts = rows.filter((r) => r.type === "equity" && r.balance !== 0);
+  // Equity's own normal balance is credit — a debit-normal equity account
+  // (e.g. Member Draws) is a contra-equity account and must reduce the
+  // total, not add to it. `balance` (debit - credit, per its own normal
+  // side) is the right number to *display* per row; `contribution` is the
+  // sign-corrected amount that actually rolls up into Total Equity.
+  const equityAccounts = rows
+    .filter((r) => r.type === "equity" && r.balance !== 0)
+    .map((r) => ({ ...r, contribution: r.normal_balance === "debit" ? -r.balance : r.balance }));
   const revenue = rows.filter((r) => r.type === "revenue");
   const expense = rows.filter((r) => r.type === "expense");
 
   const totalAssets = assets.reduce((s, r) => s + r.balance, 0);
   const totalLiabilities = liabilities.reduce((s, r) => s + r.balance, 0);
-  const totalEquityAccounts = equityAccounts.reduce((s, r) => s + r.balance, 0);
+  const totalEquityAccounts = equityAccounts.reduce((s, r) => s + r.contribution, 0);
   const netIncomeToDate = revenue.reduce((s, r) => s + r.balance, 0) - expense.reduce((s, r) => s + r.balance, 0);
   const totalEquity = totalEquityAccounts + netIncomeToDate;
 
@@ -120,7 +125,7 @@ export default async function BalanceSheetPage({ searchParams }: { searchParams:
             {equityAccounts.map((e) => (
               <tr key={e.id}>
                 <td>{e.name}</td>
-                <td className="money table-value figure">${e.balance.toFixed(2)}</td>
+                <td className="money table-value figure">${e.contribution.toFixed(2)}</td>
               </tr>
             ))}
             <tr>

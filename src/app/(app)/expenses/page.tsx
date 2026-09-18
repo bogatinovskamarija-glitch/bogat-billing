@@ -1,7 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ScreenHeader from "../../../components/ScreenHeader";
+import DonutChart from "../../../components/DonutChart";
+import { suggestAccountCode } from "../../../lib/expense-categorizer";
+import type { RecurringCharge } from "../../../lib/recurring-expenses";
 
 interface AccountOption {
   id: string;
@@ -36,15 +39,21 @@ export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
   const [loading, setLoading] = useState(true);
+  const [recurring, setRecurring] = useState<{ charges: RecurringCharge[]; monthlyTotal: number }>({ charges: [], monthlyTotal: 0 });
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [manualForm, setManualForm] = useState({ expenseDate: new Date().toISOString().slice(0, 10), description: "", amount: "", accountId: "" });
+  const [savingManual, setSavingManual] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [expRes, acctRes] = await Promise.all([
+    const [expRes, acctRes, recurRes] = await Promise.all([
       fetch("/api/expenses").then((r) => r.json()),
       fetch("/api/accounts").then((r) => r.json()),
+      fetch("/api/expenses/recurring").then((r) => r.json()),
     ]);
     setExpenses(expRes.expenses || []);
     setAccounts((acctRes.accounts || []).filter((a: any) => a.type === "expense"));
+    setRecurring({ charges: recurRes.charges || [], monthlyTotal: recurRes.monthlyTotal || 0 });
     setLoading(false);
   }, []);
 
@@ -108,8 +117,48 @@ export default function ExpensesPage() {
     await load();
   }
 
+  function handleDescriptionChange(description: string) {
+    setManualForm((f) => {
+      if (f.accountId) return { ...f, description };
+      const suggestedCode = suggestAccountCode(description);
+      const match = accounts.find((a) => a.code === suggestedCode);
+      return { ...f, description, accountId: match?.id ?? f.accountId };
+    });
+  }
+
+  async function handleAddManual(e: React.FormEvent) {
+    e.preventDefault();
+    if (!manualForm.description || !manualForm.amount || !manualForm.accountId) return;
+    setSavingManual(true);
+    await fetch("/api/expenses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        expenseDate: manualForm.expenseDate,
+        description: manualForm.description,
+        amount: Number(manualForm.amount),
+        accountId: manualForm.accountId,
+      }),
+    });
+    setSavingManual(false);
+    setManualForm({ expenseDate: new Date().toISOString().slice(0, 10), description: "", amount: "", accountId: "" });
+    setShowAddForm(false);
+    await load();
+  }
+
   const pending = expenses.filter((e) => e.status === "uncategorized");
   const posted = expenses.filter((e) => e.status === "categorized");
+
+  const categoryChart = useMemo(() => {
+    const byAccount = new Map<string, number>();
+    posted.forEach((e) => {
+      const name = e.accounts?.name ?? "Uncategorized";
+      byAccount.set(name, (byAccount.get(name) ?? 0) + Number(e.amount));
+    });
+    return Array.from(byAccount.entries())
+      .map(([label, value]) => ({ label, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [posted]);
 
   return (
     <main>
@@ -119,6 +168,9 @@ export default function ExpensesPage() {
         title="Expenses"
         actions={
           <>
+            <button className="btn-secondary" onClick={() => setShowAddForm((s) => !s)}>
+              {showAddForm ? "Cancel" : "+ Add expense"}
+            </button>
             <input ref={fileInput} type="file" accept=".csv" onChange={handleFile} style={{ display: "none" }} id="csv-upload" />
             <label htmlFor="csv-upload" className="btn-secondary" style={{ cursor: "pointer" }}>
               Upload CSV
@@ -131,6 +183,57 @@ export default function ExpensesPage() {
           </>
         }
       />
+
+      {showAddForm && (
+        <form onSubmit={handleAddManual} className="panel" style={{ padding: 20, marginBottom: "var(--space-group)", display: "grid", gridTemplateColumns: "140px 1fr 140px 1fr auto", gap: 12, alignItems: "end" }}>
+          <div>
+            <label className="label" style={{ display: "block", marginBottom: 6 }}>Date</label>
+            <input
+              type="date"
+              value={manualForm.expenseDate}
+              onChange={(e) => setManualForm((f) => ({ ...f, expenseDate: e.target.value }))}
+              style={{ padding: 8, background: "var(--floor)", color: "var(--text)", border: "1px solid var(--line)", width: "100%" }}
+            />
+          </div>
+          <div>
+            <label className="label" style={{ display: "block", marginBottom: 6 }}>Description</label>
+            <input
+              required
+              value={manualForm.description}
+              onChange={(e) => handleDescriptionChange(e.target.value)}
+              style={{ padding: 8, background: "var(--floor)", color: "var(--text)", border: "1px solid var(--line)", width: "100%" }}
+            />
+          </div>
+          <div>
+            <label className="label" style={{ display: "block", marginBottom: 6 }}>Amount</label>
+            <input
+              required
+              type="number"
+              step="0.01"
+              value={manualForm.amount}
+              onChange={(e) => setManualForm((f) => ({ ...f, amount: e.target.value }))}
+              style={{ padding: 8, background: "var(--floor)", color: "var(--text)", border: "1px solid var(--line)", width: "100%" }}
+            />
+          </div>
+          <div>
+            <label className="label" style={{ display: "block", marginBottom: 6 }}>Category</label>
+            <select
+              required
+              value={manualForm.accountId}
+              onChange={(e) => setManualForm((f) => ({ ...f, accountId: e.target.value }))}
+              style={{ padding: 8, background: "var(--floor)", color: "var(--text)", border: "1px solid var(--line)", width: "100%" }}
+            >
+              <option value="">Select…</option>
+              {accounts.map((a) => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+          </div>
+          <button type="submit" className="btn-primary" disabled={savingManual}>
+            {savingManual ? "Adding…" : "Add"}
+          </button>
+        </form>
+      )}
 
       {parseResult && (
         <div className="panel" style={{ padding: 20, marginBottom: "var(--space-group)" }}>
@@ -169,6 +272,40 @@ export default function ExpensesPage() {
         <p style={{ color: "var(--text-dim)" }}>Loading…</p>
       ) : (
         <>
+          {(categoryChart.length > 0 || recurring.charges.length > 0) && (
+            <div style={{ display: "grid", gridTemplateColumns: recurring.charges.length > 0 ? "1fr 1fr" : "1fr", gap: "var(--space-group)", marginBottom: "var(--space-group)" }}>
+              {categoryChart.length > 0 && (
+                <div className="panel" style={{ padding: 20 }}>
+                  <div className="panel-title" style={{ marginBottom: 14 }}>
+                    By category
+                  </div>
+                  <DonutChart data={categoryChart} centerLabel="Posted" />
+                </div>
+              )}
+              {recurring.charges.length > 0 && (
+                <div className="panel" style={{ padding: 20 }}>
+                  <div className="panel-title" style={{ marginBottom: 4 }}>
+                    Recurring charges
+                  </div>
+                  <p style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 0, marginBottom: 14 }}>
+                    ${recurring.monthlyTotal.toFixed(2)}/mo estimated from {recurring.charges.length} repeating vendor{recurring.charges.length === 1 ? "" : "s"}
+                  </p>
+                  {recurring.charges.map((c) => (
+                    <div key={c.vendor} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--line-soft)" }}>
+                      <div>
+                        <div className="table-value">{c.vendor}</div>
+                        <div style={{ fontSize: 11, color: "var(--text-faint)" }}>
+                          every ~{c.cadenceDays}d · next ~{c.nextExpectedDate}
+                        </div>
+                      </div>
+                      <span className="figure" style={{ color: "var(--text)" }}>${c.averageAmount.toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {pending.length > 0 && (
             <div className="panel" style={{ marginBottom: "var(--space-group)" }}>
               <div className="panel-title" style={{ padding: "16px 20px 0" }}>

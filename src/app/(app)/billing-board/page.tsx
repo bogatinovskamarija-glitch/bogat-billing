@@ -8,6 +8,7 @@ import type { Client } from "../../../lib/supabase";
 import ClientForm, { clientToForm, emptyClientForm, ClientFormValues } from "../../../components/ClientForm";
 import MilestoneBilling from "../../../components/MilestoneBilling";
 import ProjectBillingSetup from "../../../components/ProjectBillingSetup";
+import BarChart from "../../../components/BarChart";
 
 interface UnassignedProject {
   id: string;
@@ -19,6 +20,9 @@ interface ProjectListRow {
   name: string;
   billing_type: string;
   contract_value: number | null;
+  project_type: string | null;
+  start_date: string | null;
+  projected_end_date: string | null;
   clients: { name: string } | null;
 }
 
@@ -58,6 +62,7 @@ export default function BillingBoardPage() {
   const [generating, setGenerating] = useState(false);
 
   const [milestoneProjects, setMilestoneProjects] = useState<MilestoneProject[]>([]);
+  const [ytd, setYtd] = useState<{ billedYTD: number; collectedYTD: number } | null>(null);
   const [phaseSelected, setPhaseSelected] = useState<Record<string, boolean>>({});
   const [allProjects, setAllProjects] = useState<ProjectListRow[]>([]);
   const [showProjectList, setShowProjectList] = useState(false);
@@ -69,6 +74,7 @@ export default function BillingBoardPage() {
     const data = await res.json();
     setClients(data.clients || []);
     setMilestoneProjects(data.milestoneProjects || []);
+    setYtd(data.ytd || null);
     const initialSelected: Record<string, boolean> = {};
     (data.clients || []).forEach((c: CandidateClient) =>
       c.projects.forEach((p) =>
@@ -309,6 +315,33 @@ export default function BillingBoardPage() {
     }
   }
 
+  const byClientChart = useMemo(
+    () =>
+      clients
+        .map((c) => ({ label: c.clientName, value: c.accumulatedTotal }))
+        .filter((d) => d.value > 0)
+        .sort((a, b) => b.value - a.value),
+    [clients]
+  );
+
+  const readyVsNotReady = useMemo(() => {
+    if (tab !== "all") return null;
+    let ready = 0;
+    let notReady = 0;
+    clients.forEach((c) =>
+      c.projects.forEach((p) =>
+        p.tasks.forEach((t) => {
+          if (t.billingStatus === "ready_to_invoice") ready += t.amount;
+          else if (t.billingStatus === "not_billed") notReady += t.amount;
+        })
+      )
+    );
+    return [
+      { label: "Ready to invoice", value: ready, color: "var(--moss-lite)" },
+      { label: "Not yet ready", value: notReady, color: "var(--moss)" },
+    ];
+  }, [tab, clients]);
+
   function toggleGroup(client: CandidateClient, checked: boolean) {
     setSelected((s) => {
       const next = { ...s };
@@ -344,6 +377,32 @@ export default function BillingBoardPage() {
           </>
         }
       />
+
+      {ytd && (
+        <p style={{ fontSize: 12, color: "var(--text-faint)", marginTop: -20, marginBottom: "var(--space-group)" }}>
+          Year to date: ${ytd.billedYTD.toLocaleString(undefined, { maximumFractionDigits: 0 })} billed · $
+          {ytd.collectedYTD.toLocaleString(undefined, { maximumFractionDigits: 0 })} collected
+        </p>
+      )}
+
+      {!loading && byClientChart.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: readyVsNotReady ? "1fr 1fr" : "1fr", gap: "var(--space-group)", marginBottom: "var(--space-group)" }}>
+          <div className="panel" style={{ padding: 20 }}>
+            <div className="panel-title" style={{ marginBottom: 14 }}>
+              By client ({tab})
+            </div>
+            <BarChart data={byClientChart} />
+          </div>
+          {readyVsNotReady && (
+            <div className="panel" style={{ padding: 20 }}>
+              <div className="panel-title" style={{ marginBottom: 14 }}>
+                Ready vs. not yet ready
+              </div>
+              <BarChart data={readyVsNotReady} />
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="panel" style={{ padding: 20, marginBottom: "var(--space-group)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: clientPanelMode !== "closed" || showClientList ? 16 : 0 }}>
@@ -458,6 +517,8 @@ export default function BillingBoardPage() {
               <tr>
                 <th>Project</th>
                 <th>Client</th>
+                <th>Type</th>
+                <th>Timeline</th>
                 <th>Billing model</th>
                 <th className="money">Contract value</th>
                 <th></th>
@@ -468,6 +529,11 @@ export default function BillingBoardPage() {
                 <tr key={p.id}>
                   <td className="table-value">{p.name}</td>
                   <td style={{ color: "var(--text-dim)" }}>{p.clients?.name ?? "—"}</td>
+                  <td style={{ color: "var(--text-dim)", fontSize: 13 }}>{p.project_type ?? "—"}</td>
+                  <td style={{ color: "var(--text-dim)", fontSize: 13 }}>
+                    {p.start_date ?? "—"}
+                    {p.projected_end_date && <> – {p.projected_end_date}</>}
+                  </td>
                   <td>
                     <span className="badge">{BILLING_TYPE_LABEL[p.billing_type] ?? p.billing_type}</span>
                   </td>

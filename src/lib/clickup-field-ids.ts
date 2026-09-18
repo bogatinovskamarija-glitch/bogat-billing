@@ -67,6 +67,12 @@ export const PROJECT_SUMMARY_FIELDS = {
   currentPhase: "37df25ed-29f8-42a2-b783-c82e856a1147", // drop_down
   billingModel: "a220da7a-375b-4ed9-8389-9785726d007f", // drop_down
   contractValue: "9bfc010c-591a-4311-987e-f43673f2a336", // currency
+  projectType: "b304e509-e936-4486-a543-9e6eb3e70238", // drop_down
+  buildingType: "4976e2c5-4590-46ce-86ee-92f14b40849c", // drop_down
+  startDate: "8ee8cf59-3696-4865-8f87-40835dbad9dd", // date
+  projectedEndDate: "becfed6f-8746-439f-a527-5740fc1e44d1", // date
+  totalConstructionBudget: "e83b7f6a-be25-4c5f-a174-5b999936820a", // currency
+  driveFolderPath: "737ddc72-75ac-43a0-9b4a-50aae2f9b96d", // url
 } as const;
 
 // "Billing Model" dropdown option IDs (PROJECT_SUMMARY_FIELDS.billingModel) —

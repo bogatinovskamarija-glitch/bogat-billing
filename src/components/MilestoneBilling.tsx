@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { MilestoneProject, MilestonePhase } from "../lib/billing-candidates";
 
 // Canonical phase order, used only to suggest (never auto-set) which phases
@@ -35,6 +36,8 @@ export default function MilestoneBilling({
   onToggleReady: (phase: MilestonePhase, ready: boolean) => void;
   onEditProject: (projectId: string) => void;
 }) {
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
   if (projects.length === 0) return null;
 
   return (
@@ -46,22 +49,41 @@ export default function MilestoneBilling({
         </p>
       </div>
 
-      {projects.map((project) => (
+      {projects.map((project) => {
+        const isCollapsed = collapsed[project.projectId] ?? true;
+        const billedAmount = project.phases.filter((p) => p.status === "billed").reduce((s, p) => s + p.amount, 0);
+        return (
         <div key={project.projectId} style={{ padding: 20, borderTop: "1px solid var(--line-soft)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--white)" }}>{project.projectName}</div>
-              <div style={{ fontSize: 12, color: "var(--text-dim)" }}>
-                {project.clientName} · Contract ${project.contractValue.toFixed(2)}
-                {project.currentPhase && <> · Current phase: {project.currentPhase}</>}
+          <div
+            style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: isCollapsed ? 0 : 12, cursor: "pointer" }}
+            onClick={() => setCollapsed((c) => ({ ...c, [project.projectId]: !isCollapsed }))}
+          >
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+              <span style={{ color: "var(--text-dim)", marginTop: 3 }}>{isCollapsed ? "▸" : "▾"}</span>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--white)" }}>{project.projectName}</div>
+                <div style={{ fontSize: 12, color: "var(--text-dim)" }}>
+                  {project.clientName} · Contract ${project.contractValue.toFixed(2)}
+                  {project.currentPhase && <> · Current phase: {project.currentPhase}</>}
+                  {isCollapsed && (
+                    <> · {project.phases.length} phases · ${billedAmount.toFixed(2)} billed</>
+                  )}
+                </div>
               </div>
             </div>
-            <button className="btn-secondary" onClick={() => onEditProject(project.projectId)} style={{ padding: "6px 12px" }}>
+            <button
+              className="btn-secondary"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditProject(project.projectId);
+              }}
+              style={{ padding: "6px 12px" }}
+            >
               Edit phases
             </button>
           </div>
 
-          <table>
+          {!isCollapsed && <table>
             <thead>
               <tr>
                 <th style={{ width: 28 }}></th>
@@ -124,9 +146,10 @@ export default function MilestoneBilling({
                 );
               })}
             </tbody>
-          </table>
+          </table>}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

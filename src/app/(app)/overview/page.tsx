@@ -1,22 +1,21 @@
 import Link from "next/link";
 import ScreenHeader from "../../../components/ScreenHeader";
 import RevenueChart, { MonthBucket } from "../../../components/RevenueChart";
+import BarChart from "../../../components/BarChart";
 import { supabaseAdmin } from "../../../lib/supabase";
 import { getCandidatesForClient, getInvoicedTaskMap, getTaskOverrides, getBillableEmployees } from "../../../lib/billing-candidates";
+import { getProjectRevenue, getBilledCollectedYTD } from "../../../lib/client-revenue";
+import { getOpenPipelineSummary } from "../../../lib/pipeline";
 
 export const dynamic = "force-dynamic";
 
 async function getRollup() {
-  const yearStart = `${new Date().getFullYear()}-01-01`;
-
   const { data: invoices } = await supabaseAdmin
     .from("invoices")
     .select("total_amount, status, issued_date, client_id")
     .neq("status", "void");
 
-  const ytdInvoices = (invoices || []).filter((i) => (i.issued_date ?? "") >= yearStart);
-  const billedYTD = ytdInvoices.reduce((s, i) => s + Number(i.total_amount), 0);
-  const collectedYTD = ytdInvoices.filter((i) => i.status === "paid").reduce((s, i) => s + Number(i.total_amount), 0);
+  const { billedYTD, collectedYTD } = await getBilledCollectedYTD();
   const outstandingAR = billedYTD - collectedYTD;
 
   // Revenue by month — last 6 months, from real invoice issue dates.
@@ -79,19 +78,63 @@ async function getRollup() {
     .from("projects")
     .select("id, name, is_active, client_id, contract_value, clients(name)")
     .eq("is_active", true);
-  const { data: lineItemsByProject } = await supabaseAdmin
-    .from("invoice_line_items")
-    .select("project_id, amount, invoices(status)");
+  const revenueMap = await getProjectRevenue((allProjects || []).map((p: any) => p.id));
 
   const byProject = (allProjects || []).map((p: any) => {
-    const items = (lineItemsByProject || []).filter((l: any) => l.project_id === p.id);
-    const billed = items.reduce((s: number, l: any) => s + Number(l.amount), 0);
-    const collected = items.filter((l: any) => l.invoices?.status === "paid").reduce((s: number, l: any) => s + Number(l.amount), 0);
+    const rev = revenueMap.get(p.id) ?? { billed: 0, collected: 0 };
     const contractValue = p.contract_value ? Number(p.contract_value) : null;
-    return { id: p.id, name: p.name, clientName: p.clients?.name ?? "—", billed, collected, contractValue };
+    return { id: p.id, name: p.name, clientName: p.clients?.name ?? "—", billed: rev.billed, collected: rev.collected, contractValue };
   });
 
-  return { billedYTD, collectedYTD, outstandingAR, months, wipUnbilled, readyTotal, readyClients: readyClients.size, readyTasks, oldestReadyDays, byProject };
+  // Expenses widget — top categories this month, posted expenses only.
+  const monthStart = `${new Date().toISOString().slice(0, 7)}-01`;
+  const { data: monthExpenses } = await supabaseAdmin
+    .from("expenses")
+    .select("amount, accounts(name)")
+    .eq("status", "categorized")
+    .gte("expense_date", monthStart);
+  const byCategory = new Map<string, number>();
+  (monthExpenses || []).forEach((e: any) => {
+    const name = e.accounts?.name ?? "Other";
+    byCategory.set(name, (byCategory.get(name) ?? 0) + Number(e.amount));
+  });
+  const expensesByCategory = Array.from(byCategory.entries())
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 6);
+
+  // Pipeline widget — live from ClickUp, same computation /api/pipeline uses.
+  const pipeline = await getOpenPipelineSummary();
+
+  // Payroll widget — YTD gross wages + active headcount.
+  const yearStart = `${new Date().getFullYear()}-01-01`;
+  const { data: ytdStubs } = await supabaseAdmin
+    .from("paystubs")
+    .select("gross_pay, pay_runs!inner(status, pay_date)")
+    .eq("pay_runs.status", "finalized")
+    .gte("pay_runs.pay_date", yearStart);
+  const payrollYtdGross = (ytdStubs || []).reduce((s: number, r: any) => s + Number(r.gross_pay), 0);
+  const { count: activeHeadcount } = await supabaseAdmin
+    .from("employees")
+    .select("id", { count: "exact", head: true })
+    .eq("is_active", true);
+
+  return {
+    billedYTD,
+    collectedYTD,
+    outstandingAR,
+    months,
+    wipUnbilled,
+    readyTotal,
+    readyClients: readyClients.size,
+    readyTasks,
+    oldestReadyDays,
+    byProject,
+    expensesByCategory,
+    pipeline,
+    payrollYtdGross,
+    activeHeadcount: activeHeadcount ?? 0,
+  };
 }
 
 export default async function OverviewPage() {
@@ -249,6 +292,46 @@ export default async function OverviewPage() {
             </tbody>
           </table>
         )}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--space-group)", marginTop: "var(--space-group)" }}>
+        <div className="panel" style={{ padding: 20 }}>
+          <div className="panel-title" style={{ marginBottom: 4 }}>
+            Expenses this month
+          </div>
+          <p style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 0, marginBottom: 14 }}>
+            <Link href="/expenses">By category →</Link>
+          </p>
+          <BarChart data={r.expensesByCategory} emptyLabel="No posted expenses this month yet." />
+        </div>
+
+        <div className="panel" style={{ padding: 20 }}>
+          <div className="panel-title" style={{ marginBottom: 4 }}>
+            Open pipeline
+          </div>
+          <p style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 0, marginBottom: 14 }}>
+            ${r.pipeline.openValue.toLocaleString(undefined, { maximumFractionDigits: 0 })} · {r.pipeline.dealCount} live deals ·{" "}
+            <Link href="/pipeline">By source →</Link>
+          </p>
+          <BarChart data={r.pipeline.bySource} emptyLabel="No open deals with a value yet." />
+        </div>
+
+        <div className="panel" style={{ padding: 20 }}>
+          <div className="panel-title" style={{ marginBottom: 14 }}>
+            Payroll
+          </div>
+          <div className="label">YTD gross wages</div>
+          <div className="stat-figure figure" style={{ color: "var(--white)", marginBottom: 16 }}>
+            ${r.payrollYtdGross.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+          </div>
+          <div className="label">Active headcount</div>
+          <div className="stat-figure figure" style={{ color: "var(--white)" }}>
+            {r.activeHeadcount}
+          </div>
+          <p style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 16, marginBottom: 0 }}>
+            <Link href="/payroll">Open payroll →</Link>
+          </p>
+        </div>
       </div>
     </main>
   );

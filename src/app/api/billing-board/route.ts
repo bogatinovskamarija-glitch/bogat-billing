@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../lib/supabase";
 import { getCandidatesForClient, getInvoicedTaskMap, getTaskOverrides, getBillableEmployees, getMilestoneProjects, BoardTab, CandidateClient } from "../../../lib/billing-candidates";
+import { getBilledCollectedYTD } from "../../../lib/client-revenue";
 
 // Aggregated Billing Board: every client's active-project candidate tasks,
 // grouped, in one response — the mockup's single multi-client board rather
@@ -34,6 +35,7 @@ export async function GET(req: NextRequest) {
   }
 
   const milestoneProjects = await getMilestoneProjects();
+  const ytd = await getBilledCollectedYTD();
 
-  return NextResponse.json({ clients: results, milestoneProjects });
+  return NextResponse.json({ clients: results, milestoneProjects, ytd });
 }

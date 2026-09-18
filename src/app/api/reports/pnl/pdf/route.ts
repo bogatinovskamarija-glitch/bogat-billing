@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { supabaseAdmin } from "../../../../../lib/supabase";
+import { fetchAllJournalLines } from "../../../../../lib/ledger";
 import StatementDocument, { StatementPdfData } from "../../../../../pdf/StatementDocument";
 
 export const runtime = "nodejs";
@@ -10,14 +11,10 @@ export async function GET(req: NextRequest) {
   const end = req.nextUrl.searchParams.get("end") || new Date().toISOString().slice(0, 10);
 
   const { data: accounts } = await supabaseAdmin.from("accounts").select("id, name, type, normal_balance").in("type", ["revenue", "expense"]);
-  const { data: lines } = await supabaseAdmin
-    .from("journal_lines")
-    .select("account_id, debit, credit, journal_entries!inner(entry_date)")
-    .gte("journal_entries.entry_date", start)
-    .lte("journal_entries.entry_date", end);
+  const lines = await fetchAllJournalLines({ gte: start, lte: end });
 
   const rows = (accounts || []).map((acct) => {
-    const acctLines = (lines || []).filter((l: any) => l.account_id === acct.id);
+    const acctLines = lines.filter((l) => l.account_id === acct.id);
     const debit = acctLines.reduce((s: number, l: any) => s + Number(l.debit), 0);
     const credit = acctLines.reduce((s: number, l: any) => s + Number(l.credit), 0);
     const balance = acct.normal_balance === "debit" ? debit - credit : credit - debit;

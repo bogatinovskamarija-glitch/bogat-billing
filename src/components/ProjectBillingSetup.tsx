@@ -25,6 +25,14 @@ export default function ProjectBillingSetup({ projectId, onClose, onSaved }: { p
   const [projectName, setProjectName] = useState("");
   const [billingType, setBillingType] = useState("hourly");
   const [phases, setPhases] = useState<PhaseRow[]>([]);
+  const [details, setDetails] = useState<{
+    projectType: string | null;
+    buildingType: string | null;
+    startDate: string | null;
+    projectedEndDate: string | null;
+    totalConstructionBudget: number | null;
+    driveFolderUrl: string | null;
+  } | null>(null);
 
   useEffect(() => {
     fetch(`/api/projects/${projectId}/billing`)
@@ -32,6 +40,14 @@ export default function ProjectBillingSetup({ projectId, onClose, onSaved }: { p
       .then((data) => {
         setProjectName(data.project?.name ?? "");
         setBillingType(data.project?.billing_type ?? "hourly");
+        setDetails({
+          projectType: data.project?.project_type ?? null,
+          buildingType: data.project?.building_type ?? null,
+          startDate: data.project?.start_date ?? null,
+          projectedEndDate: data.project?.projected_end_date ?? null,
+          totalConstructionBudget: data.project?.total_construction_budget ?? null,
+          driveFolderUrl: data.project?.drive_folder_url ?? null,
+        });
         setPhases(
           (data.phases || []).map((p: any) => ({
             id: p.id,
@@ -90,6 +106,35 @@ export default function ProjectBillingSetup({ projectId, onClose, onSaved }: { p
             <p style={{ color: "var(--text-dim)" }}>Loading…</p>
           ) : (
             <>
+              {details && (details.projectType || details.buildingType || details.startDate || details.totalConstructionBudget || details.driveFolderUrl) && (
+                <div style={{ marginBottom: 20, padding: 12, background: "var(--floor)", border: "1px solid var(--line-soft)" }}>
+                  <div className="label" style={{ marginBottom: 8 }}>
+                    Project details (from ClickUp)
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 13, color: "var(--text-dim)" }}>
+                    {details.projectType && <div>Type: <span style={{ color: "var(--text)" }}>{details.projectType}</span></div>}
+                    {details.buildingType && <div>Building: <span style={{ color: "var(--text)" }}>{details.buildingType}</span></div>}
+                    {(details.startDate || details.projectedEndDate) && (
+                      <div>
+                        Timeline: <span style={{ color: "var(--text)" }}>{details.startDate ?? "—"} – {details.projectedEndDate ?? "—"}</span>
+                      </div>
+                    )}
+                    {details.totalConstructionBudget && (
+                      <div>
+                        Construction budget: <span style={{ color: "var(--text)" }}>${Number(details.totalConstructionBudget).toLocaleString()}</span>
+                      </div>
+                    )}
+                    {details.driveFolderUrl && (
+                      <div>
+                        <a href={details.driveFolderUrl} target="_blank" rel="noreferrer">
+                          Open project files
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <label className="label">Billing model</label>
               <select value={billingType} onChange={(e) => setBillingType(e.target.value)} style={{ ...inputStyle, marginBottom: 16 }}>
                 {Object.entries(BILLING_TYPE_LABEL).map(([value, label]) => (

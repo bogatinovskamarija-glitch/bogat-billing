@@ -20,7 +20,7 @@ export interface TaskOverride {
 // ClickUp statuses, the ones observed on Arraigo. A project list using a
 // differently-named closed status won't surface its Not Billed tasks until
 // this is generalized.
-const DONE_STATUSES = ["complete", "bill"];
+export const DONE_STATUSES = ["complete", "bill"];
 const READY_STATUS = "bill";
 
 export type BillingStatus = "not_billed" | "ready_to_invoice" | "invoiced";

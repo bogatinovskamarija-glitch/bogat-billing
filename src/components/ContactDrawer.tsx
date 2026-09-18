@@ -1,7 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { CrmContact } from "../app/api/crm/route";
+import type { ClientRevenueSummary } from "../lib/client-revenue";
+
+function useClientSummary(billingClientId: string | null) {
+  const [summary, setSummary] = useState<ClientRevenueSummary | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!billingClientId) {
+      setSummary(null);
+      return;
+    }
+    setLoading(true);
+    fetch(`/api/clients/${billingClientId}/summary`)
+      .then((r) => r.json())
+      .then((d) => setSummary(d.summary ?? null))
+      .finally(() => setLoading(false));
+  }, [billingClientId]);
+
+  return { summary, loading };
+}
 
 export default function ContactDrawer({
   contact,
@@ -17,6 +37,7 @@ export default function ContactDrawer({
   const [referral, setReferral] = useState(contact.referralPotential ?? "");
   const [note, setNote] = useState(contact.workingNote ?? "");
   const [saving, setSaving] = useState(false);
+  const { summary, loading: summaryLoading } = useClientSummary(contact.billingClientId);
 
   async function save(extra?: Record<string, unknown>) {
     setSaving(true);
@@ -150,7 +171,7 @@ export default function ContactDrawer({
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: 10, marginBottom: contact.billingClientId ? 28 : 0 }}>
             <button className="btn-primary" onClick={() => save({ logTouch: true })} disabled={saving}>
               Log a touch
             </button>
@@ -158,6 +179,81 @@ export default function ContactDrawer({
               {saving ? "Saving…" : "Save"}
             </button>
           </div>
+
+          {contact.billingClientId && (
+            <div style={{ borderTop: "1px solid var(--line-soft)", paddingTop: 20 }}>
+              <div className="panel-title" style={{ marginBottom: 12 }}>
+                Billing
+              </div>
+              {summaryLoading && <p style={{ fontSize: 13, color: "var(--text-dim)" }}>Loading…</p>}
+              {!summaryLoading && summary && summary.projects.length === 0 && (
+                <p style={{ fontSize: 13, color: "var(--text-faint)" }}>No projects linked to this client yet.</p>
+              )}
+              {!summaryLoading && summary && summary.projects.length > 0 && (
+                <>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 18 }}>
+                    <div>
+                      <div className="label" style={{ marginBottom: 2 }}>
+                        Billed / Collected
+                      </div>
+                      <div className="table-value figure">
+                        ${summary.totalBilled.toFixed(2)} / ${summary.totalCollected.toFixed(2)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="label" style={{ marginBottom: 2 }}>
+                        Outstanding
+                      </div>
+                      <div className="table-value figure" style={{ color: summary.totalOutstanding > 0 ? "var(--oxide)" : "var(--text)" }}>
+                        ${summary.totalOutstanding.toFixed(2)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="label" style={{ marginBottom: 2 }}>
+                        WIP unbilled
+                      </div>
+                      <div className="table-value figure">${summary.wipUnbilled.toFixed(2)}</div>
+                    </div>
+                    <div>
+                      <div className="label" style={{ marginBottom: 2 }}>
+                        Contract value
+                      </div>
+                      <div className="table-value figure">${summary.totalContractValue.toFixed(2)}</div>
+                    </div>
+                  </div>
+
+                  <div className="label" style={{ marginBottom: 8 }}>
+                    Projects
+                  </div>
+                  {summary.projects.map((p) => {
+                    const pct = p.contractValue ? Math.min(100, Math.round((p.billed / p.contractValue) * 100)) : null;
+                    return (
+                      <div key={p.id} style={{ marginBottom: 14 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
+                          <span className="table-value">{p.name}</span>
+                          <span className="figure" style={{ color: "var(--text-dim)" }}>
+                            ${p.billed.toFixed(2)} billed
+                          </span>
+                        </div>
+                        {pct !== null ? (
+                          <>
+                            <div style={{ height: 4, background: "var(--line)", width: "100%" }}>
+                              <div style={{ height: 4, background: "var(--moss-lite)", width: `${pct}%` }} />
+                            </div>
+                            <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 4 }}>
+                              {pct}% of ${p.contractValue!.toFixed(2)} contract
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{ fontSize: 11, color: "var(--text-faint)" }}>no contract value{p.currentPhase && ` · ${p.currentPhase}`}</div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

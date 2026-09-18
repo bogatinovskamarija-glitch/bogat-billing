@@ -15,7 +15,7 @@ export interface UnlinkedCrmContact {
 // "+ New client" always traces back to a real CRM contact instead of typing
 // one from scratch and ending up with a disconnected duplicate.
 export async function GET() {
-  const tasks = await listAllTasks(LISTS.crm);
+  const tasks = (await listAllTasks(LISTS.crm)).filter((t) => !t.parent);
   const { data: linked } = await supabaseAdmin
     .from("clients")
     .select("clickup_crm_task_id")

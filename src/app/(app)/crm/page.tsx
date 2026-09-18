@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import ScreenHeader from "../../../components/ScreenHeader";
 import ContactDrawer from "../../../components/ContactDrawer";
+import DonutChart from "../../../components/DonutChart";
 import type { CrmContact } from "../../../app/api/crm/route";
 
 export default function CrmPage() {
@@ -37,6 +38,15 @@ export default function CrmPage() {
     const revenue = contacts.reduce((s, c) => s + (c.totalRevenueLifetime ?? 0), 0);
     return { tracked: contacts.length, strong, overdue, revenue };
   }, [contacts]);
+
+  const revenueByClient = useMemo(
+    () =>
+      contacts
+        .filter((c) => c.billedRevenue > 0)
+        .map((c) => ({ label: c.companyName || c.name, value: c.billedRevenue }))
+        .sort((a, b) => b.value - a.value),
+    [contacts]
+  );
 
   return (
     <main>
@@ -92,6 +102,18 @@ export default function CrmPage() {
           <span style={{ fontSize: 13 }}>Strategic and media — touch every 30 days</span>
         </div>
       </div>
+
+      {revenueByClient.length > 0 && (
+        <div className="panel" style={{ padding: 20, marginBottom: "var(--space-group)" }}>
+          <div className="panel-title" style={{ marginBottom: 4 }}>
+            Billed revenue by client
+          </div>
+          <p style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 0, marginBottom: 14 }}>
+            From real invoices (billing-linked contacts only) — not the manually-set "lifetime" field above.
+          </p>
+          <DonutChart data={revenueByClient} centerLabel="Billed" />
+        </div>
+      )}
 
       <div className="panel">
         {loading ? (

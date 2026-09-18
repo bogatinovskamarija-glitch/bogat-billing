@@ -18,6 +18,12 @@ interface LinkedTaskRef {
   name?: string;
 }
 
+// ClickUp `date` custom fields come back as a millisecond-epoch string.
+function epochMsToDateStr(value: unknown): string | null {
+  const ms = Number(value);
+  return Number.isFinite(ms) && ms > 0 ? new Date(ms).toISOString().slice(0, 10) : null;
+}
+
 // Manual "sync projects" action (Phase A — no ClickUp writes, read + upsert
 // into Supabase only). Walks the known project-list registry, matches each
 // to its Projects-list summary task by normalized name, and upserts a thin
@@ -74,6 +80,15 @@ export async function POST() {
       : null;
     const billingType = billingModelRaw ? BILLING_MODEL_OPTIONS[billingModelRaw] : undefined;
 
+    const projectType = summaryTask ? resolveDropdownLabel(summaryTask, PROJECT_SUMMARY_FIELDS.projectType) : null;
+    const buildingType = summaryTask ? resolveDropdownLabel(summaryTask, PROJECT_SUMMARY_FIELDS.buildingType) : null;
+    const startDate = summaryTask ? epochMsToDateStr(getCustomFieldValue(summaryTask, PROJECT_SUMMARY_FIELDS.startDate)) : null;
+    const projectedEndDate = summaryTask ? epochMsToDateStr(getCustomFieldValue(summaryTask, PROJECT_SUMMARY_FIELDS.projectedEndDate)) : null;
+    const totalConstructionBudget = summaryTask ? getCustomFieldNumber(summaryTask, PROJECT_SUMMARY_FIELDS.totalConstructionBudget) : null;
+    const driveFolderUrl = summaryTask
+      ? (getCustomFieldValue(summaryTask, PROJECT_SUMMARY_FIELDS.driveFolderPath) as string | null | undefined) ?? null
+      : null;
+
     const { data: upserted } = await supabaseAdmin
       .from("projects")
       .upsert(
@@ -85,9 +100,19 @@ export async function POST() {
           current_phase: currentPhase,
           hourly_rate: hourlyRate,
           contract_value: contractValue,
+          project_type: projectType,
+          building_type: buildingType,
+          start_date: startDate,
+          projected_end_date: projectedEndDate,
+          total_construction_budget: totalConstructionBudget,
+          drive_folder_url: driveFolderUrl,
           ...(billingType ? { billing_type: billingType } : {}),
           is_active: known.isActive,
-          client_id: clientId,
+          // Only set client_id when ClickUp actually resolved one this
+          // sync — never null it out. Manual assignment via the Billing
+          // Board's "Assign" flow (assign-client route) has no ClickUp-side
+          // field to round-trip from, so a re-sync must not undo it.
+          ...(clientId ? { client_id: clientId } : {}),
           last_synced_at: new Date().toISOString(),
         },
         { onConflict: "clickup_list_id" }

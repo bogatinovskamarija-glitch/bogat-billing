@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../lib/supabase";
+import { fetchAllJournalLines } from "../../../lib/ledger";
 
 export async function GET(req: NextRequest) {
   const month = req.nextUrl.searchParams.get("month"); // first-of-month, e.g. 2026-09-01
@@ -12,17 +13,13 @@ export async function GET(req: NextRequest) {
 
   const { data: accounts } = await supabaseAdmin.from("accounts").select("id, code, name").eq("type", "expense").order("code");
   const { data: budgetLines } = await supabaseAdmin.from("budget_lines").select("*").eq("month", month);
-  const { data: journalLines } = await supabaseAdmin
-    .from("journal_lines")
-    .select("account_id, debit, credit, journal_entries!inner(entry_date)")
-    .gte("journal_entries.entry_date", month)
-    .lte("journal_entries.entry_date", monthEndStr);
+  const journalLines = await fetchAllJournalLines({ gte: month, lte: monthEndStr });
 
   const budgetMap = new Map((budgetLines || []).map((b) => [b.account_id, Number(b.budgeted_amount)]));
 
   const rows = (accounts || []).map((a) => {
-    const lines = (journalLines || []).filter((l: any) => l.account_id === a.id);
-    const actual = lines.reduce((s: number, l: any) => s + Number(l.debit) - Number(l.credit), 0);
+    const lines = journalLines.filter((l) => l.account_id === a.id);
+    const actual = lines.reduce((s, l) => s + Number(l.debit) - Number(l.credit), 0);
     return { accountId: a.id, code: a.code, name: a.name, budgeted: budgetMap.get(a.id) ?? 0, actual };
   });
 

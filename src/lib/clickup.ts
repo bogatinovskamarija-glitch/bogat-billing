@@ -33,6 +33,7 @@ export interface ClickUpTask {
   date_updated: string;
   assignees: { id: number; username: string }[];
   list: { id: string; name: string };
+  parent: string | null;
 }
 
 // Tasks in a project list at any of the given statuses (OR) — used to find

@@ -2,9 +2,10 @@ import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/render
 import { LOGO_BUFFER } from "./brand";
 
 const styles = StyleSheet.create({
-  page: { padding: 48, fontFamily: "Montserrat", fontSize: 10, color: "#2B2926" },
+  page: { padding: 48, fontFamily: "Montserrat", fontSize: 10, color: "#2B2926", display: "flex", flexDirection: "column" },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", borderBottomWidth: 2, borderBottomColor: "#242E22", paddingBottom: 20, marginBottom: 24 },
   logo: { width: 180 },
+  headerBlock: { width: 240, alignItems: "flex-end" },
   title: { fontSize: 20, fontWeight: 700, color: "#242E22", textAlign: "right" },
   companyName: { fontSize: 11, fontWeight: 700, color: "#242E22", textAlign: "right", marginTop: 10 },
   subtitle: { fontSize: 9, color: "#63625A", textAlign: "right", marginTop: 4 },
@@ -46,7 +47,7 @@ export default function StatementDocument({ data }: { data: StatementPdfData }) 
       <Page size="LETTER" style={styles.page}>
         <View style={styles.header}>
           <Image src={LOGO_BUFFER} style={styles.logo} />
-          <View>
+          <View style={styles.headerBlock}>
             <Text style={styles.title}>{data.title.toUpperCase()}</Text>
             <Text style={styles.companyName}>Bogat Architecture &amp; Design LLC</Text>
             <Text style={styles.subtitle}>{data.subtitle}</Text>
@@ -80,6 +81,8 @@ export default function StatementDocument({ data }: { data: StatementPdfData }) 
             <Text style={styles.bigValue}>{money(data.grandTotal.value)}</Text>
           </View>
         )}
+
+        <View style={{ flexGrow: 1 }} />
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
