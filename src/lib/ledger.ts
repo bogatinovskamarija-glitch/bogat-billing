@@ -23,7 +23,8 @@ export async function postJournalEntry(
   description: string,
   sourceType: string,
   sourceId: string | null,
-  lines: JournalLineInput[]
+  lines: JournalLineInput[],
+  isTest = false
 ): Promise<string> {
   const totalDebit = Math.round(lines.reduce((s, l) => s + (l.debit || 0), 0) * 100) / 100;
   const totalCredit = Math.round(lines.reduce((s, l) => s + (l.credit || 0), 0) * 100) / 100;
@@ -35,7 +36,7 @@ export async function postJournalEntry(
 
   const { data: entry, error: entryError } = await supabaseAdmin
     .from("journal_entries")
-    .insert({ entry_date: entryDate, description, source_type: sourceType, source_id: sourceId })
+    .insert({ entry_date: entryDate, description, source_type: sourceType, source_id: sourceId, is_test: isTest })
     .select("id")
     .single();
   if (entryError || !entry) throw new Error(entryError?.message || "Failed to create journal entry");
@@ -71,15 +72,21 @@ export interface JournalLineRow {
 // account's real balance was off by ~$124,900 once journal_lines passed
 // 2,000 rows. Every financial report must page through the full result set
 // instead of a single unbounded `.select()`.
-export async function fetchAllJournalLines(opts: { gte?: string; lte?: string } = {}): Promise<JournalLineRow[]> {
+// Test/simulated entries (payroll and invoice runs generated while exercising
+// the app, before real money moves) are excluded by default so every report
+// reflects only what's actually happened — pass includeTest to opt in.
+export async function fetchAllJournalLines(
+  opts: { gte?: string; lte?: string; includeTest?: boolean } = {}
+): Promise<JournalLineRow[]> {
   const pageSize = 1000;
   const rows: JournalLineRow[] = [];
   let from = 0;
   for (;;) {
     let query = supabaseAdmin
       .from("journal_lines")
-      .select("account_id, debit, credit, journal_entries!inner(entry_date)")
+      .select("account_id, debit, credit, journal_entries!inner(entry_date, is_test)")
       .range(from, from + pageSize - 1);
+    if (!opts.includeTest) query = query.eq("journal_entries.is_test", false);
     if (opts.gte) query = query.gte("journal_entries.entry_date", opts.gte);
     if (opts.lte) query = query.lte("journal_entries.entry_date", opts.lte);
     const { data, error } = await query;

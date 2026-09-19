@@ -57,10 +57,11 @@ async function nextInvoiceNumber(): Promise<string> {
 // race between two tabs) fails that one insert without blocking the rest of
 // the client's invoice.
 export async function POST(req: NextRequest) {
-  const body = (await req.json()) as { selections: ClientSelection[] };
+  const body = (await req.json()) as { selections: ClientSelection[]; isTest?: boolean };
   if (!body?.selections?.length) {
     return NextResponse.json({ error: "selections is required" }, { status: 400 });
   }
+  const isTest = body.isTest === true;
 
   const created: { clientId: string; invoiceId: string; invoiceNumber: string }[] = [];
   const skipped: { id: string; reason: string }[] = [];
@@ -95,6 +96,7 @@ export async function POST(req: NextRequest) {
         period_end: periodEnd,
         issued_date: today.toISOString().slice(0, 10),
         due_date: dueDate.toISOString().slice(0, 10),
+        is_test: isTest,
       })
       .select("id, invoice_number")
       .single();
@@ -177,7 +179,8 @@ export async function POST(req: NextRequest) {
         [
           { accountCode: "1100", debit: actualSubtotal, memo: "Accounts Receivable" },
           { accountCode: "4000", credit: actualSubtotal, memo: "Design Fee Revenue" },
-        ]
+        ],
+        isTest
       );
       await supabaseAdmin.from("invoices").update({ journal_entry_id: journalEntryId }).eq("id", invoice.id);
     }

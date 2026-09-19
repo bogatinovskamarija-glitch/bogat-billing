@@ -224,7 +224,14 @@ export default function PayrollPage() {
   async function handleFinalize() {
     if (!activeRun) return;
     if (!confirm(`Finalize this pay run? ${activeRun.paystubs.length} paystub(s) will be locked and posted to the ledger.`)) return;
-    await fetch(`/api/payroll/runs/${activeRun.run.id}/finalize`, { method: "POST" });
+    const isReal = confirm(
+      "Is this REAL payroll — will money actually leave the bank?\n\nOK = Real (counts toward your financial reports)\nCancel = Test/simulated run (won't count until marked real)"
+    );
+    await fetch(`/api/payroll/runs/${activeRun.run.id}/finalize`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isTest: !isReal }),
+    });
     await Promise.all([loadRuns(), openRun(activeRun.run.id), loadYtd()]);
   }
 

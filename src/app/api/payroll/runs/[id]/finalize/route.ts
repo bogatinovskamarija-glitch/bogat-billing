@@ -8,7 +8,10 @@ import { postJournalEntry } from "../../../../../../lib/ledger";
 //   withheld from employees plus the employer's own tax liability — lumped
 //   into one payable rather than split into 401k/benefits/tax sub-accounts,
 //   per the plan's "right level of detail" call).
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: { id: string } }) {
+  const body = await req.json().catch(() => ({}));
+  const isTest = body?.isTest !== false; // defaults to test — real payroll is explicitly marked
+
   const { data: run, error: runError } = await supabaseAdmin.from("pay_runs").select("*").eq("id", params.id).single();
   if (runError || !run) return NextResponse.json({ error: "Run not found" }, { status: 404 });
   if (run.status === "finalized") return NextResponse.json({ error: "Already finalized" }, { status: 400 });
@@ -35,7 +38,8 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
       { accountCode: "5100", debit: Math.round(totalEmployerTax * 100) / 100, memo: "Employer payroll taxes" },
       { accountCode: "1000", credit: Math.round(totalNet * 100) / 100, memo: "Net pay disbursed" },
       { accountCode: "2100", credit: totalPayable, memo: "Withheld + employer taxes owed" },
-    ]
+    ],
+    isTest
   );
 
   await supabaseAdmin.from("pay_runs").update({ status: "finalized" }).eq("id", params.id);

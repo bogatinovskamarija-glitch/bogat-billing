@@ -60,6 +60,7 @@ export default function BillingBoardPage() {
   const [assignPicks, setAssignPicks] = useState<Record<string, string>>({});
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [isTestInvoice, setIsTestInvoice] = useState(false);
 
   const [milestoneProjects, setMilestoneProjects] = useState<MilestoneProject[]>([]);
   const [ytd, setYtd] = useState<{ billedYTD: number; collectedYTD: number } | null>(null);
@@ -303,11 +304,15 @@ export default function BillingBoardPage() {
     const res = await fetch("/api/invoices", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ selections: selections.map(({ clientId, items }) => ({ clientId, items })) }),
+      body: JSON.stringify({
+        selections: selections.map(({ clientId, items }) => ({ clientId, items })),
+        isTest: isTestInvoice,
+      }),
     });
     const data = await res.json();
     setGenerating(false);
     setConfirmOpen(false);
+    setIsTestInvoice(false);
     if (data.created?.length) {
       router.push("/invoices");
     } else {
@@ -668,6 +673,10 @@ export default function BillingBoardPage() {
                   <span className="table-value figure">${s.total.toFixed(2)}</span>
                 </div>
               ))}
+              <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16, fontSize: 13, color: "var(--text-dim)", cursor: "pointer" }}>
+                <input type="checkbox" checked={isTestInvoice} onChange={(e) => setIsTestInvoice(e.target.checked)} />
+                Mark as test/demo — won&apos;t count toward Balance Sheet, P&amp;L, or Cash until a real client is actually billed
+              </label>
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 24 }}>
                 <button className="btn-secondary" onClick={() => setConfirmOpen(false)} disabled={generating}>
                   Cancel

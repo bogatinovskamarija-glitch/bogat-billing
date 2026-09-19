@@ -23,7 +23,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     [
       { accountCode: "1000", debit: body.amount, memo: "Cash received" },
       { accountCode: "1100", credit: body.amount, memo: "Accounts Receivable" },
-    ]
+    ],
+    invoice.is_test === true
   );
 
   await supabaseAdmin.from("invoice_payments").insert({
