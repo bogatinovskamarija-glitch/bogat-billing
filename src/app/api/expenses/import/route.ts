@@ -2,16 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { parseCsv } from "../../../../lib/csv-parse";
 import { suggestAccountCode } from "../../../../lib/expense-categorizer";
 import { supabaseAdmin } from "../../../../lib/supabase";
-
-function parseDate(raw: string): string | null {
-  // Handles M/D/YYYY (Chase) and YYYY-MM-DD alike.
-  const mdY = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (mdY) return `${mdY[3]}-${mdY[1].padStart(2, "0")}-${mdY[2].padStart(2, "0")}`;
-  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (iso) return raw.slice(0, 10);
-  const d = new Date(raw);
-  return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
-}
+import { parseImportDate, directionFromAmount, dedupeKey } from "../../../../lib/expense-import";
 
 export async function POST(req: NextRequest) {
   const { csvText, mapping } = await req.json();
@@ -34,7 +25,7 @@ export async function POST(req: NextRequest) {
   // one place this app should assume "run more than once" is the normal
   // case, not the exception.
   const { data: existingRows } = await supabaseAdmin.from("expenses").select("expense_date, description, amount");
-  const existingKeys = new Set((existingRows || []).map((e) => `${e.expense_date}|${e.description}|${Number(e.amount).toFixed(2)}`));
+  const existingKeys = new Set((existingRows || []).map((e) => dedupeKey(e.expense_date, e.description, Number(e.amount))));
 
   const toInsert: any[] = [];
   let skippedDuplicates = 0;
@@ -43,20 +34,14 @@ export async function POST(req: NextRequest) {
     const amount = parseFloat(rawAmount);
     if (!Number.isFinite(amount) || amount === 0) continue;
 
-    const expenseDate = parseDate((row[dateIdx] || "").trim());
+    const expenseDate = parseImportDate((row[dateIdx] || "").trim());
     if (!expenseDate) continue;
 
     const description = (row[descIdx] || "").trim();
     const absAmount = Math.abs(amount);
+    const direction = directionFromAmount(amount);
 
-    // The sign of the amount is the only trustworthy signal for direction —
-    // a bank's own DEBIT/CREDIT label has been observed to disagree with it
-    // (refunds posted as "DEBIT" with a positive amount). Trusting that
-    // label instead of the sign is exactly what produced a five-figure
-    // balance sheet error the first time this importer was used for real.
-    const direction: "in" | "out" = amount < 0 ? "out" : "in";
-
-    const key = `${expenseDate}|${description}|${absAmount.toFixed(2)}`;
+    const key = dedupeKey(expenseDate, description, absAmount);
     if (existingKeys.has(key)) {
       skippedDuplicates++;
       continue;

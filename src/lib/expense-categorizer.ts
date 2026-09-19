@@ -5,15 +5,30 @@
 // Always a suggestion, never final: nothing posts to the ledger until it's
 // confirmed on the Expenses screen, and any row can be recategorized first.
 const OUT_RULES: { keywords: string[]; accountCode: string }[] = [
-  { keywords: ["GOOGLE", "ADOBE", "FIGMA", "MICROSOFT", "DROPBOX", "ZOOM", "CANVA", "CLICKUP", "NOTION", "SIGN.COM", "INSTANT INK", "HP *", "APPLE.COM", "GITHUB", "OPENAI", "ANTHROPIC"], accountCode: "6000" },
-  { keywords: ["USPS", "FEDEX", "UPS ", "OFFICE DEPOT", "STAPLES", "AMAZON"], accountCode: "6400" },
+  {
+    keywords: [
+      "GOOGLE", "ADOBE", "FIGMA", "MICROSOFT", "DROPBOX", "ZOOM", "CANVA", "CLICKUP", "NOTION", "SIGN.COM",
+      "INSTANT INK", "HP *", "APPLE.COM", "GITHUB", "OPENAI", "ANTHROPIC", "AUTODESK", "TOGGL.COM", "PICTORY",
+      "NETFLIX", "KINDLE SVCS", "PRIME VIDEO", "MINDSIGHTST", "WEARE* MEMBERSHIP", "LEXISNEXIS", "DAT SOLUTIONS",
+      "BYTEDANCE", "INTSIG",
+    ],
+    accountCode: "6000",
+  },
+  { keywords: ["USPS", "FEDEX", "UPS ", "OFFICE DEPOT", "STAPLES"], accountCode: "6400" },
+  { keywords: ["AMAZON"], accountCode: "6410" }, // matches the "Amazon - Supplies & Equipment" split used in the real bank reconciliation
   { keywords: ["DELTA", "UNITED AIR", "AIRLINE", "MARRIOTT", "HILTON", "AIRBNB", "UBER", "LYFT"], accountCode: "6500" },
-  { keywords: ["RESTAURANT", "STARBUCKS", "DOORDASH", "GRUBHUB", "UBER EATS", "CAFE"], accountCode: "6600" },
+  { keywords: ["RESTAURANT", "STARBUCKS", "DOORDASH", "GRUBHUB", "UBER EATS", "CAFE", "NESPRESSO", "PARTHENONFO", "ICEBOX", "EDDIE V"], accountCode: "6600" },
   { keywords: ["FPL", "COMCAST", "XFINITY", "AT&T", "VERIZON", "T-MOBILE", "WATER "], accountCode: "6700" },
-  { keywords: ["MONTHLY SERVICE FEE", "OVERDRAFT", "ATM FEE", "WIRE FEE", "MAINTENANCE FEE"], accountCode: "6800" },
+  { keywords: ["MONTHLY SERVICE FEE", "ATM FEE", "WIRE FEE", "MAINTENANCE FEE"], accountCode: "6800" },
+  { keywords: ["OVERDRAFT"], accountCode: "6810" },
+  { keywords: ["FOREIGN EXCHANGE"], accountCode: "6820" },
   { keywords: ["INSURANCE", "GEICO", "STATE FARM", "PROGRESSIVE", "HISCOX"], accountCode: "6200" },
   { keywords: ["ATTORNEY", "LAW OFFICE", "CPA ", "ACCOUNTANT", "LEGALZOOM"], accountCode: "6300" },
+  { keywords: ["NCARB", "SUNBIZ", "BUILDNER"], accountCode: "6310" },
+  { keywords: ["FACEBOOK", "METAPLATFOR", "FACEBK"], accountCode: "6150" },
+  { keywords: ["TRUCK UNLOAD", "A1LUMPERS"], accountCode: "6450" },
   { keywords: ["RENT", "LANDLORD", "PROPERTY MGMT"], accountCode: "6100" },
+  { keywords: ["SHEIN", "MACYS", "FASHIONNOVA", "BABYBOO", "ETSY", "MEDSTOP"], accountCode: "3100" }, // Personal spend on the business card — treated as owner draw, not an expense
   { keywords: ["ZELLE PAYMENT TO", "ZELLE TO"], accountCode: "3100" }, // Member Draws
 ];
 

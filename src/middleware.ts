@@ -30,8 +30,13 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const isLoginPage = request.nextUrl.pathname.startsWith("/login");
+  // The password-recovery link lands here with a code in the URL that the
+  // browser client exchanges for a session client-side — there's no cookie
+  // yet on this first server-rendered request, so it can't be gated the
+  // same way as every other page without breaking the flow before it starts.
+  const isResetPasswordPage = request.nextUrl.pathname.startsWith("/reset-password");
 
-  if (!user && !isLoginPage) {
+  if (!user && !isLoginPage && !isResetPasswordPage) {
     const loginUrl = new URL("/login", request.url);
     return NextResponse.redirect(loginUrl);
   }

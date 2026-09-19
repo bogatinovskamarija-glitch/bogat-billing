@@ -17,7 +17,15 @@ async function getAccountIdMap(): Promise<Map<string, string>> {
 }
 
 // The one real correctness guarantee a ledger gives you: debits must equal
-// credits, checked here before anything is written, not assumed by callers.
+// credits. Pulled out as its own pure function so that guarantee is
+// unit-testable without a database connection, not just exercised
+// incidentally whenever postJournalEntry happens to be called for real.
+export function checkBalanced(lines: JournalLineInput[]): { totalDebit: number; totalCredit: number; balanced: boolean } {
+  const totalDebit = Math.round(lines.reduce((s, l) => s + (l.debit || 0), 0) * 100) / 100;
+  const totalCredit = Math.round(lines.reduce((s, l) => s + (l.credit || 0), 0) * 100) / 100;
+  return { totalDebit, totalCredit, balanced: totalDebit === totalCredit };
+}
+
 export async function postJournalEntry(
   entryDate: string,
   description: string,
@@ -26,9 +34,8 @@ export async function postJournalEntry(
   lines: JournalLineInput[],
   isTest = false
 ): Promise<string> {
-  const totalDebit = Math.round(lines.reduce((s, l) => s + (l.debit || 0), 0) * 100) / 100;
-  const totalCredit = Math.round(lines.reduce((s, l) => s + (l.credit || 0), 0) * 100) / 100;
-  if (totalDebit !== totalCredit) {
+  const { totalDebit, totalCredit, balanced } = checkBalanced(lines);
+  if (!balanced) {
     throw new Error(`Unbalanced journal entry: debits ${totalDebit} !== credits ${totalCredit} (${description})`);
   }
 
