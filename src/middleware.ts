@@ -19,6 +19,9 @@ export async function middleware(request: NextRequest) {
           cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
         },
       },
+      // Must match supabase-browser.ts — the app also runs inside a ClickUp
+      // view (iframe), which needs SameSite=None to keep the session cookie.
+      cookieOptions: { sameSite: "none", secure: true },
     }
   );
 
