@@ -2,6 +2,7 @@ import Link from "next/link";
 import ScreenHeader from "../../../components/ScreenHeader";
 import RevenueChart, { MonthBucket } from "../../../components/RevenueChart";
 import BarChart from "../../../components/BarChart";
+import DonutChart from "../../../components/DonutChart";
 import { supabaseAdmin } from "../../../lib/supabase";
 import { getCandidatesForClient, getInvoicedTaskMap, getTaskOverrides, getBillableEmployees } from "../../../lib/billing-candidates";
 import { getProjectRevenue, getBilledCollectedYTD } from "../../../lib/client-revenue";
@@ -140,6 +141,11 @@ async function getRollup() {
 export default async function OverviewPage() {
   const r = await getRollup();
 
+  const byProjectChart = r.byProject
+    .filter((p) => p.billed > 0)
+    .map((p) => ({ label: p.name, value: p.billed }))
+    .sort((a, b) => b.value - a.value);
+
   return (
     <main>
       <div
@@ -242,6 +248,18 @@ export default async function OverviewPage() {
           (above), not a monthly history — there's no meaningful "WIP for March" once work becomes billable.
         </p>
       </div>
+
+      {byProjectChart.length > 0 && (
+        <div className="panel" style={{ padding: 20, marginBottom: "var(--space-group)" }}>
+          <div className="panel-title" style={{ marginBottom: 4 }}>
+            Billed revenue by project
+          </div>
+          <p style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 0, marginBottom: 14 }}>
+            Same billed totals as the table below, one slice per project.
+          </p>
+          <DonutChart data={byProjectChart} centerLabel="Billed" />
+        </div>
+      )}
 
       <div className="panel">
         <div className="panel-title" style={{ padding: "16px 20px 0" }}>
