@@ -131,6 +131,8 @@ export default function PayrollPage() {
   const [loadingPerformance, setLoadingPerformance] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [ytdByEmployee, setYtdByEmployee] = useState<Record<string, { ytdGross: number; ytdNet: number }>>({});
+  const [nec1099, setNec1099] = useState<{ contractorId: string; name: string; total: number; requires1099: boolean }[]>([]);
+  const [threshold1099, setThreshold1099] = useState(600);
   const [runs, setRuns] = useState<PayRun[]>([]);
   const [activeRun, setActiveRun] = useState<{ run: PayRun; paystubs: Paystub[] } | null>(null);
   const [showAddEmployee, setShowAddEmployee] = useState(false);
@@ -159,6 +161,13 @@ export default function PayrollPage() {
     setYtdByEmployee(byId);
   }, []);
 
+  const load1099 = useCallback(async () => {
+    const res = await fetch("/api/payroll/1099-summary");
+    const data = await res.json();
+    setNec1099(data.summary || []);
+    setThreshold1099(data.threshold ?? 600);
+  }, []);
+
   const loadRuns = useCallback(async () => {
     const res = await fetch("/api/payroll/runs");
     const data = await res.json();
@@ -169,7 +178,8 @@ export default function PayrollPage() {
     loadEmployees();
     loadRuns();
     loadYtd();
-  }, [loadEmployees, loadRuns, loadYtd]);
+    load1099();
+  }, [loadEmployees, loadRuns, loadYtd, load1099]);
 
   const loadPerformance = useCallback(async () => {
     setLoadingPerformance(true);
@@ -429,6 +439,30 @@ export default function PayrollPage() {
                 YTD gross by employee
               </div>
               <BarChart data={ytdChart} />
+            </div>
+          )}
+
+          {nec1099.length > 0 && (
+            <div className="panel" style={{ padding: 20, marginBottom: 20 }}>
+              <div className="panel-title" style={{ marginBottom: 4 }}>
+                1099 contractor payments ({new Date().getFullYear()})
+              </div>
+              <p style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 0, marginBottom: 14 }}>
+                From expenses tagged to a contractor on the Expenses screen. IRS 1099-NEC threshold is ${threshold1099}.
+              </p>
+              {nec1099.map((c) => (
+                <div key={c.contractorId} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid var(--line-soft)" }}>
+                  <span style={{ fontSize: 13 }}>{c.name}</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    {c.requires1099 && (
+                      <span className="badge" style={{ color: "var(--oxide)", borderColor: "var(--oxide)" }}>
+                        1099 required
+                      </span>
+                    )}
+                    <span className="figure table-value">${c.total.toFixed(2)}</span>
+                  </span>
+                </div>
+              ))}
             </div>
           )}
 

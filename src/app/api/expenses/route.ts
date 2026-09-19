@@ -27,7 +27,9 @@ export async function POST(req: NextRequest) {
       expense_date: body.expenseDate,
       description: body.description,
       amount: Math.abs(Number(body.amount)),
+      direction: body.direction === "in" ? "in" : "out",
       account_id: body.accountId,
+      contractor_id: body.contractorId || null,
       source: "manual",
       status: "uncategorized",
     })

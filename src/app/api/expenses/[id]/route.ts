@@ -15,6 +15,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (body.description !== undefined) patch.description = body.description;
   if (body.amount !== undefined) patch.amount = body.amount;
   if (body.expenseDate !== undefined) patch.expense_date = body.expenseDate;
+  if (body.contractorId !== undefined) patch.contractor_id = body.contractorId || null;
 
   const { data, error } = await supabaseAdmin.from("expenses").update(patch).eq("id", params.id).select("*, accounts(code, name)").single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

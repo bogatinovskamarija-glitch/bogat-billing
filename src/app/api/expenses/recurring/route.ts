@@ -5,7 +5,10 @@ import { detectRecurringCharges, recurringMonthlyTotal } from "../../../../lib/r
 // Shared by the Expenses page's "Recurring charges" panel and the Budget
 // page's monthly reference figure, so the detection logic lives in one place.
 export async function GET() {
-  const { data: expenses } = await supabaseAdmin.from("expenses").select("expense_date, description, amount, status");
+  const { data: expenses } = await supabaseAdmin
+    .from("expenses")
+    .select("expense_date, description, amount, status")
+    .eq("direction", "out");
   const charges = detectRecurringCharges(expenses || []);
   return NextResponse.json({ charges, monthlyTotal: recurringMonthlyTotal(charges) });
 }

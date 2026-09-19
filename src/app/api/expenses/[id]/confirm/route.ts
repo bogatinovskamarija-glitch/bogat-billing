@@ -8,10 +8,18 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   if (!expense.account_id) return NextResponse.json({ error: "Pick a category first" }, { status: 400 });
   if (expense.status === "categorized") return NextResponse.json({ ok: true, alreadyConfirmed: true });
 
-  const journalEntryId = await postJournalEntry(expense.expense_date, expense.description, "expense", expense.id, [
-    { accountCode: expense.accounts.code, debit: Number(expense.amount) },
-    { accountCode: "1000", credit: Number(expense.amount) },
-  ]);
+  const amount = Number(expense.amount);
+  const lines =
+    expense.direction === "in"
+      ? [
+          { accountCode: "1000", debit: amount },
+          { accountCode: expense.accounts.code, credit: amount },
+        ]
+      : [
+          { accountCode: expense.accounts.code, debit: amount },
+          { accountCode: "1000", credit: amount },
+        ];
+  const journalEntryId = await postJournalEntry(expense.expense_date, expense.description, "expense", expense.id, lines);
 
   await supabaseAdmin.from("expenses").update({ status: "categorized", journal_entry_id: journalEntryId }).eq("id", params.id);
   return NextResponse.json({ ok: true, journalEntryId });

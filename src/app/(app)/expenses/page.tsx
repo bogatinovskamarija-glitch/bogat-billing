@@ -10,6 +10,7 @@ interface AccountOption {
   id: string;
   code: string;
   name: string;
+  type: string;
 }
 
 interface Expense {
@@ -17,9 +18,24 @@ interface Expense {
   expense_date: string;
   description: string;
   amount: number;
+  direction: "in" | "out";
   status: "uncategorized" | "categorized";
   account_id: string | null;
+  contractor_id: string | null;
   accounts: { code: string; name: string } | null;
+}
+
+interface ContractorOption {
+  id: string;
+  name: string;
+}
+
+// Which account types make sense to categorize a row as, given its
+// direction — an inflow can be revenue or an owner contribution/refund, an
+// outflow can be an expense or an owner draw. Never the other way around.
+function accountsForDirection(accounts: AccountOption[], direction: "in" | "out"): AccountOption[] {
+  const allowed = direction === "in" ? ["revenue", "equity", "expense"] : ["expense", "equity"];
+  return accounts.filter((a) => allowed.includes(a.type));
 }
 
 interface ParseResult {
@@ -41,19 +57,29 @@ export default function ExpensesPage() {
   const [loading, setLoading] = useState(true);
   const [recurring, setRecurring] = useState<{ charges: RecurringCharge[]; monthlyTotal: number }>({ charges: [], monthlyTotal: 0 });
   const [showAddForm, setShowAddForm] = useState(false);
-  const [manualForm, setManualForm] = useState({ expenseDate: new Date().toISOString().slice(0, 10), description: "", amount: "", accountId: "" });
+  const [manualForm, setManualForm] = useState({
+    expenseDate: new Date().toISOString().slice(0, 10),
+    description: "",
+    amount: "",
+    accountId: "",
+    direction: "out" as "in" | "out",
+  });
   const [savingManual, setSavingManual] = useState(false);
+  const [importResult, setImportResult] = useState<{ imported: number; skippedDuplicates: number } | null>(null);
+  const [contractors, setContractors] = useState<ContractorOption[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [expRes, acctRes, recurRes] = await Promise.all([
+    const [expRes, acctRes, recurRes, empRes] = await Promise.all([
       fetch("/api/expenses").then((r) => r.json()),
       fetch("/api/accounts").then((r) => r.json()),
       fetch("/api/expenses/recurring").then((r) => r.json()),
+      fetch("/api/employees").then((r) => r.json()),
     ]);
     setExpenses(expRes.expenses || []);
-    setAccounts((acctRes.accounts || []).filter((a: any) => a.type === "expense"));
+    setAccounts((acctRes.accounts || []).filter((a: any) => ["expense", "revenue", "equity"].includes(a.type)));
     setRecurring({ charges: recurRes.charges || [], monthlyTotal: recurRes.monthlyTotal || 0 });
+    setContractors((empRes.employees || []).filter((e: any) => e.employee_type === "1099").map((e: any) => ({ id: e.id, name: e.name })));
     setLoading(false);
   }, []);
 
@@ -86,11 +112,13 @@ export default function ExpensesPage() {
   async function handleImport() {
     if (!csvText) return;
     setImporting(true);
-    await fetch("/api/expenses/import", {
+    const res = await fetch("/api/expenses/import", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ csvText, mapping }),
     });
+    const data = await res.json();
+    setImportResult({ imported: data.imported ?? 0, skippedDuplicates: data.skippedDuplicates ?? 0 });
     setImporting(false);
     setCsvText(null);
     setParseResult(null);
@@ -103,6 +131,15 @@ export default function ExpensesPage() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ accountId }),
+    });
+    await load();
+  }
+
+  async function handleTagContractor(expenseId: string, contractorId: string) {
+    await fetch(`/api/expenses/${expenseId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contractorId }),
     });
     await load();
   }
@@ -120,9 +157,16 @@ export default function ExpensesPage() {
   function handleDescriptionChange(description: string) {
     setManualForm((f) => {
       if (f.accountId) return { ...f, description };
-      const suggestedCode = suggestAccountCode(description);
+      const suggestedCode = suggestAccountCode(description, f.direction);
       const match = accounts.find((a) => a.code === suggestedCode);
       return { ...f, description, accountId: match?.id ?? f.accountId };
+    });
+  }
+
+  function handleDirectionChange(direction: "in" | "out") {
+    setManualForm((f) => {
+      const stillValid = accountsForDirection(accounts, direction).some((a) => a.id === f.accountId);
+      return { ...f, direction, accountId: stillValid ? f.accountId : "" };
     });
   }
 
@@ -138,10 +182,11 @@ export default function ExpensesPage() {
         description: manualForm.description,
         amount: Number(manualForm.amount),
         accountId: manualForm.accountId,
+        direction: manualForm.direction,
       }),
     });
     setSavingManual(false);
-    setManualForm({ expenseDate: new Date().toISOString().slice(0, 10), description: "", amount: "", accountId: "" });
+    setManualForm({ expenseDate: new Date().toISOString().slice(0, 10), description: "", amount: "", accountId: "", direction: "out" });
     setShowAddForm(false);
     await load();
   }
@@ -149,16 +194,19 @@ export default function ExpensesPage() {
   const pending = expenses.filter((e) => e.status === "uncategorized");
   const posted = expenses.filter((e) => e.status === "categorized");
 
-  const categoryChart = useMemo(() => {
+  function categoryBreakdown(rows: Expense[]) {
     const byAccount = new Map<string, number>();
-    posted.forEach((e) => {
+    rows.forEach((e) => {
       const name = e.accounts?.name ?? "Uncategorized";
       byAccount.set(name, (byAccount.get(name) ?? 0) + Number(e.amount));
     });
     return Array.from(byAccount.entries())
       .map(([label, value]) => ({ label, value }))
       .sort((a, b) => b.value - a.value);
-  }, [posted]);
+  }
+
+  const categoryChart = useMemo(() => categoryBreakdown(posted.filter((e) => e.direction === "out")), [posted]);
+  const incomeChart = useMemo(() => categoryBreakdown(posted.filter((e) => e.direction === "in")), [posted]);
 
   return (
     <main>
@@ -184,8 +232,35 @@ export default function ExpensesPage() {
         }
       />
 
+      {importResult && (
+        <div
+          className="panel"
+          style={{ padding: "12px 20px", marginBottom: "var(--space-group)", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+        >
+          <span style={{ fontSize: 13, color: "var(--text-dim)" }}>
+            Imported {importResult.imported} transaction{importResult.imported === 1 ? "" : "s"}
+            {importResult.skippedDuplicates > 0 &&
+              ` — skipped ${importResult.skippedDuplicates} already in the ledger (same date, description, and amount).`}
+          </span>
+          <button className="btn-secondary" onClick={() => setImportResult(null)} style={{ padding: "4px 10px" }}>
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {showAddForm && (
-        <form onSubmit={handleAddManual} className="panel" style={{ padding: 20, marginBottom: "var(--space-group)", display: "grid", gridTemplateColumns: "140px 1fr 140px 1fr auto", gap: 12, alignItems: "end" }}>
+        <form onSubmit={handleAddManual} className="panel" style={{ padding: 20, marginBottom: "var(--space-group)", display: "grid", gridTemplateColumns: "110px 130px 1fr 120px 1fr auto", gap: 12, alignItems: "end" }}>
+          <div>
+            <label className="label" style={{ display: "block", marginBottom: 6 }}>Type</label>
+            <select
+              value={manualForm.direction}
+              onChange={(e) => handleDirectionChange(e.target.value as "in" | "out")}
+              style={{ padding: 8, background: "var(--floor)", color: "var(--text)", border: "1px solid var(--line)", width: "100%" }}
+            >
+              <option value="out">Expense</option>
+              <option value="in">Income</option>
+            </select>
+          </div>
           <div>
             <label className="label" style={{ display: "block", marginBottom: 6 }}>Date</label>
             <input
@@ -224,7 +299,7 @@ export default function ExpensesPage() {
               style={{ padding: 8, background: "var(--floor)", color: "var(--text)", border: "1px solid var(--line)", width: "100%" }}
             >
               <option value="">Select…</option>
-              {accounts.map((a) => (
+              {accountsForDirection(accounts, manualForm.direction).map((a) => (
                 <option key={a.id} value={a.id}>{a.name}</option>
               ))}
             </select>
@@ -272,14 +347,29 @@ export default function ExpensesPage() {
         <p style={{ color: "var(--text-dim)" }}>Loading…</p>
       ) : (
         <>
-          {(categoryChart.length > 0 || recurring.charges.length > 0) && (
-            <div style={{ display: "grid", gridTemplateColumns: recurring.charges.length > 0 ? "1fr 1fr" : "1fr", gap: "var(--space-group)", marginBottom: "var(--space-group)" }}>
+          {(categoryChart.length > 0 || incomeChart.length > 0 || recurring.charges.length > 0) && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: `repeat(${[categoryChart.length > 0, incomeChart.length > 0, recurring.charges.length > 0].filter(Boolean).length || 1}, 1fr)`,
+                gap: "var(--space-group)",
+                marginBottom: "var(--space-group)",
+              }}
+            >
               {categoryChart.length > 0 && (
                 <div className="panel" style={{ padding: 20 }}>
                   <div className="panel-title" style={{ marginBottom: 14 }}>
-                    By category
+                    Expenses by category
                   </div>
                   <DonutChart data={categoryChart} centerLabel="Posted" />
+                </div>
+              )}
+              {incomeChart.length > 0 && (
+                <div className="panel" style={{ padding: 20 }}>
+                  <div className="panel-title" style={{ marginBottom: 14 }}>
+                    Income by category
+                  </div>
+                  <DonutChart data={incomeChart} centerLabel="Posted" />
                 </div>
               )}
               {recurring.charges.length > 0 && (
@@ -315,8 +405,10 @@ export default function ExpensesPage() {
                 <thead>
                   <tr>
                     <th>Date</th>
+                    <th></th>
                     <th>Description</th>
                     <th>Category</th>
+                    {contractors.length > 0 && <th>Contractor (1099)</th>}
                     <th className="money">Amount</th>
                     <th></th>
                   </tr>
@@ -325,6 +417,17 @@ export default function ExpensesPage() {
                   {pending.map((exp) => (
                     <tr key={exp.id}>
                       <td style={{ color: "var(--text-dim)" }}>{exp.expense_date}</td>
+                      <td>
+                        <span
+                          className="badge"
+                          style={{
+                            color: exp.direction === "in" ? "var(--moss-lite)" : "var(--oxide)",
+                            borderColor: exp.direction === "in" ? "var(--moss-lite)" : "var(--oxide)",
+                          }}
+                        >
+                          {exp.direction === "in" ? "IN" : "OUT"}
+                        </span>
+                      </td>
                       <td className="table-value">{exp.description}</td>
                       <td>
                         <select
@@ -332,13 +435,30 @@ export default function ExpensesPage() {
                           onChange={(e) => handleRecategorize(exp.id, e.target.value)}
                           style={{ padding: 6, background: "var(--floor)", color: "var(--text)", border: "1px solid var(--line)" }}
                         >
-                          {accounts.map((a) => (
+                          <option value="">Select…</option>
+                          {accountsForDirection(accounts, exp.direction).map((a) => (
                             <option key={a.id} value={a.id}>
                               {a.name}
                             </option>
                           ))}
                         </select>
                       </td>
+                      {contractors.length > 0 && (
+                        <td>
+                          {exp.direction === "out" && (
+                            <select
+                              value={exp.contractor_id ?? ""}
+                              onChange={(e) => handleTagContractor(exp.id, e.target.value)}
+                              style={{ padding: 6, background: "var(--floor)", color: "var(--text)", border: "1px solid var(--line)" }}
+                            >
+                              <option value="">—</option>
+                              {contractors.map((c) => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                              ))}
+                            </select>
+                          )}
+                        </td>
+                      )}
                       <td className="money table-value figure">${Number(exp.amount).toFixed(2)}</td>
                       <td>
                         <button className="btn-secondary" onClick={() => handleConfirm(exp.id)} style={{ padding: "6px 12px" }}>
@@ -363,6 +483,7 @@ export default function ExpensesPage() {
                 <thead>
                   <tr>
                     <th>Date</th>
+                    <th></th>
                     <th>Description</th>
                     <th>Category</th>
                     <th className="money">Amount</th>
@@ -372,6 +493,17 @@ export default function ExpensesPage() {
                   {posted.map((exp) => (
                     <tr key={exp.id}>
                       <td style={{ color: "var(--text-dim)" }}>{exp.expense_date}</td>
+                      <td>
+                        <span
+                          className="badge"
+                          style={{
+                            color: exp.direction === "in" ? "var(--moss-lite)" : "var(--oxide)",
+                            borderColor: exp.direction === "in" ? "var(--moss-lite)" : "var(--oxide)",
+                          }}
+                        >
+                          {exp.direction === "in" ? "IN" : "OUT"}
+                        </span>
+                      </td>
                       <td className="table-value">{exp.description}</td>
                       <td style={{ color: "var(--text-dim)" }}>{exp.accounts?.name ?? "—"}</td>
                       <td className="money table-value figure">${Number(exp.amount).toFixed(2)}</td>

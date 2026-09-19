@@ -23,24 +23,31 @@ const NAV: NavGroup[] = [
       { num: "02", label: "Profit & Loss", href: "/reports/pnl" },
       { num: "03", label: "Balance Sheet", href: "/reports/balance-sheet" },
       { num: "04", label: "Budget", href: "/reports/budget" },
+      { num: "05", label: "Bank Reconciliation", href: "/reports/bank-reconciliation" },
     ],
   },
   {
     label: "Revenue",
     items: [
-      { num: "05", label: "Billing Board", href: "/billing-board" },
-      { num: "06", label: "Invoices", href: "/invoices" },
+      { num: "06", label: "Billing Board", href: "/billing-board" },
+      { num: "07", label: "Invoices", href: "/invoices" },
     ],
   },
-  { label: "Expenses", items: [{ num: "07", label: "Expenses", href: "/expenses" }] },
+  {
+    label: "Expenses",
+    items: [
+      { num: "08", label: "Expenses", href: "/expenses" },
+      { num: "09", label: "Bills", href: "/bills" },
+    ],
+  },
   {
     label: "Clients",
     items: [
-      { num: "08", label: "CRM", href: "/crm" },
-      { num: "09", label: "Pipeline", href: "/pipeline" },
+      { num: "10", label: "CRM", href: "/crm" },
+      { num: "11", label: "Pipeline", href: "/pipeline" },
     ],
   },
-  { label: "People", items: [{ num: "10", label: "Payroll", href: "/payroll" }] },
+  { label: "People", items: [{ num: "12", label: "Payroll", href: "/payroll" }] },
 ];
 
 export default function Sidebar({

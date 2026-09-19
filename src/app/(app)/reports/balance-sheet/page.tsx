@@ -50,9 +50,14 @@ export default async function BalanceSheetPage({ searchParams }: { searchParams:
         contextLabel={`As of ${asOf}`}
         title="Balance Sheet"
         actions={
-          <a href={`/api/reports/balance-sheet/pdf?asOf=${asOf}`} target="_blank" className="btn-secondary" style={{ display: "inline-block" }}>
-            Export PDF
-          </a>
+          <>
+            <a href={`/api/reports/ledger-export?end=${asOf}`} className="btn-secondary" style={{ display: "inline-block" }}>
+              Export ledger CSV
+            </a>
+            <a href={`/api/reports/balance-sheet/pdf?asOf=${asOf}`} target="_blank" className="btn-secondary" style={{ display: "inline-block" }}>
+              Export PDF
+            </a>
+          </>
         }
       />
 
