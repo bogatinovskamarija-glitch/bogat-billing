@@ -6,7 +6,8 @@ import { postJournalEntry } from "../../../../../lib/ledger";
 // Accounts Receivable. Flips the invoice to 'paid' once fully covered,
 // 'partial' otherwise — this is the "mark Sent/Paid" action referenced in
 // earlier planning that hadn't actually been built until the ledger needed it.
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = await paramsPromise;
   const body = await req.json();
   if (!body?.amount || !body?.paidDate) {
     return NextResponse.json({ error: "amount and paidDate are required" }, { status: 400 });

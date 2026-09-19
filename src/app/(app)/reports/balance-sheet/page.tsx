@@ -38,7 +38,8 @@ async function getBalanceSheet(asOf: string) {
   return { assets, liabilities, equityAccounts, netIncomeToDate, totalAssets, totalLiabilities, totalEquity };
 }
 
-export default async function BalanceSheetPage({ searchParams }: { searchParams: { asOf?: string } }) {
+export default async function BalanceSheetPage({ searchParams: searchParamsPromise }: { searchParams: Promise<{ asOf?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const asOf = searchParams.asOf || new Date().toISOString().slice(0, 10);
   const { assets, liabilities, equityAccounts, netIncomeToDate, totalAssets, totalLiabilities, totalEquity } = await getBalanceSheet(asOf);
   const balances = Math.abs(totalAssets - (totalLiabilities + totalEquity)) < 0.01;

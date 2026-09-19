@@ -30,7 +30,8 @@ const FIELD_MAP: Record<string, string> = {
   bankAccountLast4: "bank_account_last4",
 };
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = await paramsPromise;
   const body = await req.json();
   const patch: Record<string, unknown> = {};
   for (const [key, column] of Object.entries(FIELD_MAP)) {

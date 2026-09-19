@@ -6,7 +6,8 @@ const CADENCE_DAYS: Record<string, number> = { A: 14, B: 21, C: 30 };
 // Upserts the CRM overlay for one contact (by ClickUp task id, not the
 // Supabase row id, so the client never needs a separate "create overlay"
 // step before it can edit a contact it just saw from /api/crm).
-export async function PATCH(req: NextRequest, { params }: { params: { clickupTaskId: string } }) {
+export async function PATCH(req: NextRequest, { params: paramsPromise }: { params: Promise<{ clickupTaskId: string }> }) {
+  const params = await paramsPromise;
   const body = await req.json();
 
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };

@@ -4,7 +4,8 @@ import { postJournalEntry } from "../../../../lib/ledger";
 
 // Marks a bill paid: Dr Accounts Payable / Cr Cash, dated whenever it was
 // actually paid (not the original bill date).
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = await paramsPromise;
   const body = await req.json();
   const { data: bill, error } = await supabaseAdmin.from("bills").select("*").eq("id", params.id).single();
   if (error || !bill) return NextResponse.json({ error: "Bill not found" }, { status: 404 });
@@ -27,7 +28,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 // Only an unpaid bill can be deleted — it also reverses the accrual entry
 // that was posted when it was created, since nothing should ever leave a
 // dangling journal entry behind.
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, { params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = await paramsPromise;
   const { data: bill, error } = await supabaseAdmin.from("bills").select("*").eq("id", params.id).single();
   if (error || !bill) return NextResponse.json({ error: "Bill not found" }, { status: 404 });
   if (bill.status === "paid") return NextResponse.json({ error: "Already paid — can't delete" }, { status: 400 });

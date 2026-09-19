@@ -3,7 +3,8 @@ import { supabaseAdmin } from "../../../../lib/supabase";
 
 // Recategorize (or edit date/description/amount) before confirming — once
 // an expense is confirmed/posted, edit via a manual adjusting entry instead.
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = await paramsPromise;
   const body = await req.json();
   const { data: existing } = await supabaseAdmin.from("expenses").select("status").eq("id", params.id).single();
   if (existing?.status === "categorized") {
@@ -22,7 +23,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   return NextResponse.json({ expense: data });
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, { params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = await paramsPromise;
   const { data: existing } = await supabaseAdmin.from("expenses").select("status").eq("id", params.id).single();
   if (existing?.status === "categorized") {
     return NextResponse.json({ error: "Already confirmed and posted — can't delete" }, { status: 400 });

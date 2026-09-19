@@ -5,7 +5,8 @@ import PaystubDocument, { PaystubPdfData } from "../../../../../pdf/PaystubDocum
 
 export const runtime = "nodejs";
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, { params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = await paramsPromise;
   const { data: stub, error } = await supabaseAdmin
     .from("paystubs")
     .select("*, employees(name, role_title, employee_type, hourly_rate, annual_salary, bank_name), pay_runs(period_start, period_end, pay_date)")

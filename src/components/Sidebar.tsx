@@ -81,18 +81,22 @@ export default function Sidebar({
         borderRight: "1px solid var(--line)",
         display: "flex",
         flexDirection: "column",
-        justifyContent: "space-between",
         position: "sticky",
         top: 0,
         height: "100vh",
       }}
     >
-      <div>
-        <div style={{ padding: "24px 20px" }}>
-          <img src="/brand/logo-white.png" alt="Bogat OS" style={{ width: 162 }} />
-        </div>
+      <div style={{ padding: "24px 20px", flexShrink: 0 }}>
+        <img src="/brand/logo-white.png" alt="Bogat OS" style={{ width: 162 }} />
+      </div>
 
-        <nav style={{ padding: "0 20px" }}>
+      {/* flex: 1 + its own overflow-y makes this the one scrollable region —
+          without it, a nav list taller than the viewport (as this one now
+          is) has no way to reach its lower items at all, sticky positioning
+          gives it nowhere to go. The embedded ClickUp view surfaces this
+          first since its chrome eats extra vertical space, but the same cap
+          bites in a plain browser on a shorter window too. */}
+      <nav style={{ padding: "0 20px", flex: 1, overflowY: "auto", minHeight: 0 }}>
           {NAV.map((group) => (
             <div key={group.label} style={{ marginBottom: "var(--space-group)" }}>
               <div className="label" style={{ color: "var(--text-faint)", marginBottom: 8 }}>
@@ -146,10 +150,9 @@ export default function Sidebar({
               })}
             </div>
           ))}
-        </nav>
-      </div>
+      </nav>
 
-      <div style={{ padding: 20, borderTop: "1px solid var(--line)" }}>
+      <div style={{ padding: 20, borderTop: "1px solid var(--line)", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
           <div
             style={{

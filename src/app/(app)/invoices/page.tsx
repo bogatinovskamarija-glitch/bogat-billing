@@ -30,7 +30,8 @@ function statusBadge(status: string, dueDate: string | null) {
   );
 }
 
-export default async function InvoicesPage({ searchParams }: { searchParams: { status?: string } }) {
+export default async function InvoicesPage({ searchParams: searchParamsPromise }: { searchParams: Promise<{ status?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const { data: invoices } = await supabaseAdmin
     .from("invoices")
     .select("id, invoice_number, status, total_amount, issued_date, due_date, clients(name)")

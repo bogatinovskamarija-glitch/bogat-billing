@@ -4,7 +4,8 @@ import { computePaystub, Employee } from "../../../../lib/payroll-run";
 
 // Recomputes one paystub (e.g. after editing PTO hours or a 1099 contractor's
 // manual gross amount) — only while its run is still a draft.
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = await paramsPromise;
   const body = await req.json();
 
   const { data: stub, error: stubError } = await supabaseAdmin

@@ -8,7 +8,8 @@ import { postJournalEntry } from "../../../../../../lib/ledger";
 //   withheld from employees plus the employer's own tax liability — lumped
 //   into one payable rather than split into 401k/benefits/tax sub-accounts,
 //   per the plan's "right level of detail" call).
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = await paramsPromise;
   const body = await req.json().catch(() => ({}));
   const isTest = body?.isTest !== false; // defaults to test — real payroll is explicitly marked
 

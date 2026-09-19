@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../../../lib/supabase";
 import { DEFAULT_PHASE_BREAKDOWN } from "../../../../../lib/clickup-field-ids";
 
-export async function GET(_req: NextRequest, { params }: { params: { projectId: string } }) {
+export async function GET(_req: NextRequest, { params: paramsPromise }: { params: Promise<{ projectId: string }> }) {
+  const params = await paramsPromise;
   const { data: project, error } = await supabaseAdmin
     .from("projects")
     .select(
@@ -25,7 +26,8 @@ export async function GET(_req: NextRequest, { params }: { params: { projectId: 
 // replaces the whole set (this is a fee-schedule template, not a ledger —
 // nothing here is immutable until a phase is actually billed, at which point
 // invoice_line_items.phase_billing_id's unique index stops it being reused).
-export async function PATCH(req: NextRequest, { params }: { params: { projectId: string } }) {
+export async function PATCH(req: NextRequest, { params: paramsPromise }: { params: Promise<{ projectId: string }> }) {
+  const params = await paramsPromise;
   const body = await req.json();
 
   if (body.billingType) {

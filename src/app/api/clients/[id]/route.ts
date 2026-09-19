@@ -11,7 +11,8 @@ const FIELD_MAP: Record<string, string> = {
   defaultHourlyRate: "default_hourly_rate",
 };
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = await paramsPromise;
   const body = await req.json();
   const patch: Record<string, unknown> = {};
   for (const [key, column] of Object.entries(FIELD_MAP)) {

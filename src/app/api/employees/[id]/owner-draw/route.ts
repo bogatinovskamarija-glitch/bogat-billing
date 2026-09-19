@@ -5,7 +5,8 @@ import { postJournalEntry } from "../../../../../lib/ledger";
 // payroll tax engine at all. Whether owner's draws are the right treatment
 // for this LLC (vs. a reasonable W-2 salary) is a question for Maria's CPA,
 // not something this app decides.
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = await paramsPromise;
   const body = await req.json();
   if (!body?.amount || !body?.date) {
     return NextResponse.json({ error: "amount and date are required" }, { status: 400 });

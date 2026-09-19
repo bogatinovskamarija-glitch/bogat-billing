@@ -3,7 +3,8 @@ import { supabaseAdmin } from "../../../../../lib/supabase";
 
 // Non-cash status transitions (draft -> sent, or -> void). Paid/partial are
 // only ever set by the /payments route since they carry real cash movement.
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = await paramsPromise;
   const body = await req.json();
   if (!["sent", "void", "draft"].includes(body.status)) {
     return NextResponse.json({ error: "status must be sent, void, or draft" }, { status: 400 });

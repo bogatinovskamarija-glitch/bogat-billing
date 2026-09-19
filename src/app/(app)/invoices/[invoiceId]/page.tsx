@@ -10,7 +10,8 @@ function fmtDate(d: string | null): string {
   return new Date(d + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-export default async function InvoiceDetailPage({ params }: { params: { invoiceId: string } }) {
+export default async function InvoiceDetailPage({ params: paramsPromise }: { params: Promise<{ invoiceId: string }> }) {
+  const params = await paramsPromise;
   const { data: invoice } = await supabaseAdmin
     .from("invoices")
     .select("*, clients(name, contact_name, contact_phone, contact_email, billing_address)")

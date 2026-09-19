@@ -5,7 +5,8 @@ type CookieToSet = { name: string; value: string; options: CookieOptions };
 
 // Gates every page/API route behind a Supabase Auth session, except /login
 // itself. Single user (Maria) — no roles, no multi-tenant RLS needed.
-export async function middleware(request: NextRequest) {
+// Renamed from `middleware` to `proxy` per Next.js 16's convention.
+export async function proxy(request: NextRequest) {
   const response = NextResponse.next({ request });
 
   const supabase = createServerClient(

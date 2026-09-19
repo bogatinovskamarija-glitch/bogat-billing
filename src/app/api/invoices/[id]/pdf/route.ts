@@ -5,7 +5,8 @@ import InvoiceDocument, { InvoicePdfData } from "../../../../../pdf/InvoiceDocum
 
 export const runtime = "nodejs";
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, { params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = await paramsPromise;
   const { data: invoice, error } = await supabaseAdmin
     .from("invoices")
     .select("*, clients(name, contact_name, contact_phone, billing_address)")
