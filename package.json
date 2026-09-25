@@ -4,8 +4,8 @@
   "private": true,
   "description": "Bogat OS — accounting, CRM, and payroll for Bogat Architecture & Design, built on ClickUp",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run"

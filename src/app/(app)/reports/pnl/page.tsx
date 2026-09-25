@@ -37,7 +37,8 @@ async function getPnl(start: string, end: string) {
   return { revenue, expenses, totalRevenue, totalExpenses, netIncome, ebitda, ebitdaAddback };
 }
 
-export default async function PnlPage({ searchParams }: { searchParams: { start?: string; end?: string } }) {
+export default async function PnlPage({ searchParams: searchParamsPromise }: { searchParams: Promise<{ start?: string; end?: string }> }) {
+  const searchParams = await searchParamsPromise;
   const now = new Date();
   const start = searchParams.start || `${now.getFullYear()}-01-01`;
   const end = searchParams.end || now.toISOString().slice(0, 10);
