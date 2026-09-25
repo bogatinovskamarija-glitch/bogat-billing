@@ -1,5 +1,3 @@
-const path = require("path");
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -15,26 +13,6 @@ const nextConfig = {
   // Next.js 14.x. Disabling optimization removes that code path entirely
   // rather than leaving an unused, vulnerable route exposed.
   images: { unoptimized: true },
-  // @react-pdf/reconciler's own require("react") can resolve to a different
-  // copy than the route handler's react (e.g. Next's internal
-  // next/dist/compiled/react, which Next's own server pages need for
-  // React.cache — confirmed by aliasing react globally, which fixed the PDF
-  // routes but broke Next's own internal pages with "i.cache is not a
-  // function"). Scoping the alias to modules resolved from inside
-  // @react-pdf's own package tree forces just that dependency onto one
-  // canonical React copy without touching Next's internals.
-  webpack: (config) => {
-    config.module.rules.push({
-      test: /node_modules[\\/]@react-pdf[\\/]/,
-      resolve: {
-        alias: {
-          react: path.resolve(__dirname, "node_modules/react"),
-          "react-dom": path.resolve(__dirname, "node_modules/react-dom"),
-        },
-      },
-    });
-    return config;
-  },
 };
 
 module.exports = nextConfig;

@@ -1,4 +1,3 @@
-import { createElement } from "react";
 import { NextRequest, NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { supabaseAdmin } from "../../../../../lib/supabase";
@@ -50,7 +49,8 @@ export async function GET(_req: NextRequest, { params: paramsPromise }: { params
     })),
   };
 
-  // See paystubs/[id]/pdf/route.ts for why this cast is here.
+  // See paystubs/[id]/pdf/route.ts for why require() (not import) is used here.
+  const { createElement } = require("react");
   const buffer = await renderToBuffer(createElement(InvoiceDocument, { data }) as any);
 
   return new NextResponse(new Uint8Array(buffer), {
