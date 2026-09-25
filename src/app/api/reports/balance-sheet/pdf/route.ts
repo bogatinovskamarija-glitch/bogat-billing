@@ -61,8 +61,29 @@ export async function GET(req: NextRequest) {
     // TEMPORARY: surfacing the real error to diagnose the post-Next-16 PDF
     // 500 — every @react-pdf/renderer route fails identically in production
     // with no server-log access to see why. Revert once root-caused.
+    const routeReact = require("react");
+    let reconcilerReactPath = "unknown";
+    let reconcilerReactVersion: string | null = null;
+    try {
+      const { createRequire } = require("module");
+      const reconcilerEntry = require.resolve("@react-pdf/reconciler");
+      const reconcilerRequire = createRequire(reconcilerEntry);
+      reconcilerReactPath = reconcilerRequire.resolve("react");
+      reconcilerReactVersion = reconcilerRequire("react").version;
+    } catch (e) {
+      reconcilerReactPath = `resolve failed: ${e instanceof Error ? e.message : String(e)}`;
+    }
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : String(err), stack: err instanceof Error ? err.stack : null },
+      {
+        marker: "diagnostic-v2-" + Date.now(),
+        error: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : null,
+        routeReactVersion: routeReact.version,
+        routeReactPath: require.resolve("react"),
+        reconcilerReactPath,
+        reconcilerReactVersion,
+        sameInstance: routeReact === (reconcilerReactPath.startsWith("resolve failed") ? null : require(reconcilerReactPath)),
+      },
       { status: 500 }
     );
   }
