@@ -13,17 +13,6 @@ const nextConfig = {
   // Next.js 14.x. Disabling optimization removes that code path entirely
   // rather than leaving an unused, vulnerable route exposed.
   images: { unoptimized: true },
-  // @react-pdf/renderer pulls in @react-pdf/hyphenate, an ESM-only package
-  // whose subpath exports (e.g. "@react-pdf/hyphenate/en-us") only declare
-  // an "import" condition, not "require". Turbopack — Next 16's new default
-  // bundler for both dev and build — was observed failing to resolve that
-  // subpath when the package gets bundled into a route (confirmed directly:
-  // running the same render call outside Next's bundler throws
-  // ERR_PACKAGE_PATH_NOT_EXPORTED on that exact path). Marking it external
-  // leaves it to Node's own native module resolution at request time
-  // instead of going through the bundler at all, which is the standard fix
-  // for this class of ESM/exports-map incompatibility.
-  serverExternalPackages: ["@react-pdf/renderer", "@react-pdf/hyphenate"],
 };
 
 module.exports = nextConfig;
