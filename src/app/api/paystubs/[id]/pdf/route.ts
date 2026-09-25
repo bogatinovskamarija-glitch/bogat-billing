@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { supabaseAdmin } from "../../../../../lib/supabase";
@@ -45,7 +46,13 @@ export async function GET(_req: Request, { params: paramsPromise }: { params: Pr
     ytdNet: Number(stub.ytd_net),
   };
 
-  const buffer = await renderToBuffer(PaystubDocument({ data }));
+  // renderToBuffer's .d.ts types its argument as ReactElement<DocumentProps>
+  // specifically — the actual, correct react-pdf usage of wrapping <Document>
+  // in a custom component (needed here since createElement, not JSX, is the
+  // only option in a .ts file) produces a FunctionComponentElement instead,
+  // which the reconciler handles identically at runtime; the type is just
+  // narrower than what it actually accepts.
+  const buffer = await renderToBuffer(createElement(PaystubDocument, { data }) as any);
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",

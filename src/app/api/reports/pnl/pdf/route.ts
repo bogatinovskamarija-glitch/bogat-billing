@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import { NextRequest, NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { supabaseAdmin } from "../../../../../lib/supabase";
@@ -36,7 +37,8 @@ export async function GET(req: NextRequest) {
     grandTotal: { label: "Net Income", value: totalRevenue - totalExpenses },
   };
 
-  const buffer = await renderToBuffer(StatementDocument({ data }));
+  // See paystubs/[id]/pdf/route.ts for why this cast is here.
+  const buffer = await renderToBuffer(createElement(StatementDocument, { data }) as any);
   return new NextResponse(new Uint8Array(buffer), {
     headers: { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="pnl-${start}-to-${end}.pdf"` },
   });
