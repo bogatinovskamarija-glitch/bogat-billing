@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { supabaseAdmin } from "../../../../../lib/supabase";
 import PaystubDocument, { PaystubPdfData } from "../../../../../pdf/PaystubDocument";
+import { createElement } from "../../../../../pdf/react-runtime/create-element";
 
 export const runtime = "nodejs";
 
@@ -45,14 +46,6 @@ export async function GET(_req: Request, { params: paramsPromise }: { params: Pr
     ytdNet: Number(stub.ytd_net),
   };
 
-  // Next's App Router rewrites a plain `import ... from "react"` in a
-  // server-bundled file to go through Next's own internal React instance,
-  // which differs from the React @react-pdf/reconciler resolves via its own
-  // native require("react") (it's auto-externalized). A plain require() here
-  // bypasses that rewrite, so this createElement call — and the JSX inside
-  // PaystubDocument itself, via its @jsxImportSource pragma — both use the
-  // exact same React instance the reconciler does. See src/pdf/react-runtime.
-  const { createElement } = require("react");
   const buffer = await renderToBuffer(createElement(PaystubDocument, { data }) as any);
   return new NextResponse(new Uint8Array(buffer), {
     headers: {

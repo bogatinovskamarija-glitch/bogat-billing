@@ -3,6 +3,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { supabaseAdmin } from "../../../../../lib/supabase";
 import { fetchAllJournalLines } from "../../../../../lib/ledger";
 import StatementDocument, { StatementPdfData } from "../../../../../pdf/StatementDocument";
+import { createElement } from "../../../../../pdf/react-runtime/create-element";
 
 export const runtime = "nodejs";
 
@@ -36,8 +37,6 @@ export async function GET(req: NextRequest) {
     grandTotal: { label: "Net Income", value: totalRevenue - totalExpenses },
   };
 
-  // See paystubs/[id]/pdf/route.ts for why require() (not import) is used here.
-  const { createElement } = require("react");
   const buffer = await renderToBuffer(createElement(StatementDocument, { data }) as any);
   return new NextResponse(new Uint8Array(buffer), {
     headers: { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="pnl-${start}-to-${end}.pdf"` },

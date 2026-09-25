@@ -3,6 +3,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { supabaseAdmin } from "../../../../../lib/supabase";
 import { fetchAllJournalLines } from "../../../../../lib/ledger";
 import StatementDocument, { StatementPdfData } from "../../../../../pdf/StatementDocument";
+import { createElement } from "../../../../../pdf/react-runtime/create-element";
 
 export const runtime = "nodejs";
 
@@ -51,8 +52,6 @@ export async function GET(req: NextRequest) {
   };
 
   try {
-    // See paystubs/[id]/pdf/route.ts for why require() (not import) is used here.
-    const { createElement } = require("react");
     const buffer = await renderToBuffer(createElement(StatementDocument, { data }) as any);
     return new NextResponse(new Uint8Array(buffer), {
       headers: { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="balance-sheet-${asOf}.pdf"` },
@@ -61,29 +60,8 @@ export async function GET(req: NextRequest) {
     // TEMPORARY: surfacing the real error to diagnose the post-Next-16 PDF
     // 500 — every @react-pdf/renderer route fails identically in production
     // with no server-log access to see why. Revert once root-caused.
-    const routeReact = require("react");
-    let reconcilerReactPath = "unknown";
-    let reconcilerReactVersion: string | null = null;
-    try {
-      const { createRequire } = require("module");
-      const reconcilerEntry = require.resolve("@react-pdf/reconciler");
-      const reconcilerRequire = createRequire(reconcilerEntry);
-      reconcilerReactPath = reconcilerRequire.resolve("react");
-      reconcilerReactVersion = reconcilerRequire("react").version;
-    } catch (e) {
-      reconcilerReactPath = `resolve failed: ${e instanceof Error ? e.message : String(e)}`;
-    }
     return NextResponse.json(
-      {
-        marker: "diagnostic-v2-" + Date.now(),
-        error: err instanceof Error ? err.message : String(err),
-        stack: err instanceof Error ? err.stack : null,
-        routeReactVersion: routeReact.version,
-        routeReactPath: require.resolve("react"),
-        reconcilerReactPath,
-        reconcilerReactVersion,
-        sameInstance: routeReact === (reconcilerReactPath.startsWith("resolve failed") ? null : require(reconcilerReactPath)),
-      },
+      { marker: "diagnostic-v3-" + Date.now(), error: err instanceof Error ? err.message : String(err), stack: err instanceof Error ? err.stack : null },
       { status: 500 }
     );
   }

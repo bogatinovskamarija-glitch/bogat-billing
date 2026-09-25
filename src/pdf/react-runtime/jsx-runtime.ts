@@ -1,14 +1,19 @@
-// Next's App Router SWC transform rewrites plain `import ... from "react"` in
-// server-bundled files to go through Next's own internal React registry,
-// which is a different React instance than the one @react-pdf/reconciler
-// resolves via its own native require("react") (it's auto-externalized, so
-// it always gets whatever's physically in node_modules/react). Elements
-// built by one instance aren't recognized by the other's reconciler —
-// "Minified React error #31". A plain require() bypasses that rewrite, so
-// pointing the PDF documents' JSX runtime at this file (via @jsxImportSource)
-// guarantees their elements are built with the exact same React instance
-// @react-pdf/reconciler uses.
-const runtime = require("react/jsx-runtime");
+// Confirmed via a runtime diagnostic against production: even a plain
+// require("react") in a webpack-bundled file (route handlers, this repo's
+// own .tsx components) gets rewritten by webpack into an internal module id
+// pointing at Next's own bundled React (observed: 19.3.0-canary), same as a
+// plain `import`. @react-pdf/reconciler is auto-externalized by Next for
+// nodejs-runtime routes, so its own require("react") is a genuine native
+// Node require, resolving the real node_modules/react (18.3.1) — a
+// different instance, hence "Minified React error #31".
+//
+// eval("require") produces a call webpack's static analyzer can't trace (its
+// argument is an opaque string, not a literal specifier), so it can't rewrite
+// it — this is the standard technique for forcing a truly native Node
+// require from inside a webpack bundle. Using it here gets the exact same
+// React instance @react-pdf/reconciler resolves.
+const nodeRequire = eval("require");
+const runtime = nodeRequire("react/jsx-runtime");
 
 export const jsx = runtime.jsx;
 export const jsxs = runtime.jsxs;
