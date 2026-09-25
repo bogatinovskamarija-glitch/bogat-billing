@@ -1,5 +1,5 @@
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
-import { LOGO_BUFFER } from "./brand";
+import { ensurePdfAssetsLoaded } from "./brand";
 
 const styles = StyleSheet.create({
   page: { padding: 44, fontFamily: "Montserrat", fontSize: 9, color: "#2B2926", display: "flex", flexDirection: "column" },
@@ -68,6 +68,7 @@ function money(n: number): string {
 }
 
 export default function PaystubDocument({ data }: { data: PaystubPdfData }) {
+  const logoBuffer = ensurePdfAssetsLoaded();
   const totalDeductions =
     data.pretax401k + data.pretaxSection125 + data.federalIncomeTax + data.socialSecurityEmployee + data.medicareEmployee + data.additionalMedicareEmployee + data.posttaxDeductions;
 
@@ -75,7 +76,7 @@ export default function PaystubDocument({ data }: { data: PaystubPdfData }) {
     <Document>
       <Page size="LETTER" style={styles.page}>
         <View style={styles.header}>
-          <Image src={LOGO_BUFFER} style={styles.logo} />
+          <Image src={logoBuffer} style={styles.logo} />
           <View style={styles.headerBlock}>
             <Text style={styles.title}>PAY STATEMENT</Text>
             <Text style={styles.companyName}>Bogat Architecture &amp; Design LLC</Text>

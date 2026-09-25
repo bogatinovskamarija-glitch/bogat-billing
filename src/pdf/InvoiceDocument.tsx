@@ -1,5 +1,5 @@
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
-import { LOGO_BUFFER } from "./brand";
+import { ensurePdfAssetsLoaded } from "./brand";
 
 const styles = StyleSheet.create({
   page: { padding: 48, fontFamily: "Montserrat", fontSize: 10, color: "#2B2926", display: "flex", flexDirection: "column" },
@@ -66,12 +66,13 @@ function fmtDate(d: string | null): string {
 }
 
 export default function InvoiceDocument({ data }: { data: InvoicePdfData }) {
+  const logoBuffer = ensurePdfAssetsLoaded();
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
         <View style={styles.letterheadRule}>
           <View style={styles.letterheadRow}>
-            <Image src={LOGO_BUFFER} style={styles.logo} />
+            <Image src={logoBuffer} style={styles.logo} />
             <View style={styles.headerBlock}>
               <Text style={styles.invoiceLabel}>INVOICE</Text>
               <Text style={styles.invoiceNumber}>{data.invoiceNumber}</Text>
