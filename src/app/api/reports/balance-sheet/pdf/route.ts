@@ -50,8 +50,18 @@ export async function GET(req: NextRequest) {
     grandTotal: { label: "Assets = Liabilities + Equity", value: totalAssets },
   };
 
-  const buffer = await renderToBuffer(StatementDocument({ data }));
-  return new NextResponse(new Uint8Array(buffer), {
-    headers: { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="balance-sheet-${asOf}.pdf"` },
-  });
+  try {
+    const buffer = await renderToBuffer(StatementDocument({ data }));
+    return new NextResponse(new Uint8Array(buffer), {
+      headers: { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="balance-sheet-${asOf}.pdf"` },
+    });
+  } catch (err) {
+    // TEMPORARY: surfacing the real error to diagnose the post-Next-16 PDF
+    // 500 — every @react-pdf/renderer route fails identically in production
+    // with no server-log access to see why. Revert once root-caused.
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : String(err), stack: err instanceof Error ? err.stack : null },
+      { status: 500 }
+    );
+  }
 }
