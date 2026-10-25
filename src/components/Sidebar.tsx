@@ -31,6 +31,7 @@ const NAV: NavGroup[] = [
     items: [
       { num: "06", label: "Billing Board", href: "/billing-board" },
       { num: "07", label: "Invoices", href: "/invoices" },
+      { num: "13", label: "AREna Contracts", href: "/arena-contracts" },
     ],
   },
   {

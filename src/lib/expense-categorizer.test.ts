@@ -36,6 +36,10 @@ describe("suggestAccountCode — inflow (direction: in)", () => {
     expect(suggestAccountCode("Autodesk ADY 855-3019562 CA 01/17", "in")).toBe("6000");
   });
 
+  it("routes a Stripe payout to Undeposited Funds, never to revenue", () => {
+    expect(suggestAccountCode("STRIPE TRANSFER ST-A1B2C3D4", "in")).toBe("1050");
+  });
+
   it("falls back to Other Income, not Other Expense, for an unrecognized inflow", () => {
     expect(suggestAccountCode("SOME UNKNOWN DEPOSIT", "in")).toBe("4900");
   });

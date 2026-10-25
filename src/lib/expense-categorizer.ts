@@ -40,6 +40,10 @@ const OUT_RULES: { keywords: string[]; accountCode: string }[] = [
 const IN_RULES: { keywords: string[]; accountCode: string }[] = [
   { keywords: ["ZELLE PAYMENT FROM", "ZELLE FROM"], accountCode: "3000" }, // Member Equity (contribution)
   { keywords: ["UPWORK"], accountCode: "4200" },
+  // A Stripe payout is money already booked when the customer paid (Dr Stripe
+  // Undeposited Funds at charge time) — the bank deposit just moves it to
+  // Cash. Booking it as income here would count that revenue twice.
+  { keywords: ["STRIPE"], accountCode: "1050" },
 ];
 
 export function suggestAccountCode(description: string, direction: "in" | "out" = "out"): string {

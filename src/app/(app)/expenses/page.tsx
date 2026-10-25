@@ -34,7 +34,9 @@ interface ContractorOption {
 // direction — an inflow can be revenue or an owner contribution/refund, an
 // outflow can be an expense or an owner draw. Never the other way around.
 function accountsForDirection(accounts: AccountOption[], direction: "in" | "out"): AccountOption[] {
-  const allowed = direction === "in" ? ["revenue", "equity", "expense"] : ["expense", "equity"];
+  // "asset" on inflows: a Stripe payout credits Undeposited Funds, and a
+  // client paying an open invoice credits Accounts Receivable.
+  const allowed = direction === "in" ? ["revenue", "equity", "expense", "asset"] : ["expense", "equity"];
   return accounts.filter((a) => allowed.includes(a.type));
 }
 
