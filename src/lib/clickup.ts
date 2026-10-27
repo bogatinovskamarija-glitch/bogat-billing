@@ -140,6 +140,25 @@ export async function getList(listId: string): Promise<ClickUpList> {
   return clickupFetch(`/list/${listId}`);
 }
 
+export interface ClickUpFolder {
+  id: string;
+  name: string;
+  space?: { id: string };
+  lists: { id: string; name: string }[];
+}
+
+export async function getFolder(folderId: string): Promise<ClickUpFolder> {
+  return clickupFetch(`/folder/${folderId}`);
+}
+
+// Every folder in a space, flat — including the per-project folders nested
+// under "Active Projects", which this endpoint returns alongside the
+// top-level ones.
+export async function listSpaceFolders(spaceId: string): Promise<ClickUpFolder[]> {
+  const data = await clickupFetch<{ folders: ClickUpFolder[] }>(`/space/${spaceId}/folder?archived=false`);
+  return data.folders;
+}
+
 export interface ClickUpCustomField {
   id: string;
   name: string;

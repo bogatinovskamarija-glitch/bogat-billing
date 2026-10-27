@@ -12,6 +12,7 @@ import {
 } from "../../../../lib/clickup";
 import { LISTS, PROJECT_SUMMARY_FIELDS, BILLING_MODEL_OPTIONS, DEFAULT_PHASE_BREAKDOWN } from "../../../../lib/clickup-field-ids";
 import { KNOWN_PROJECT_LISTS } from "../../../../lib/known-project-lists";
+import { discoverProjectLists } from "../../../../lib/project-discovery";
 
 interface LinkedTaskRef {
   id: string;
@@ -25,16 +26,26 @@ function epochMsToDateStr(value: unknown): string | null {
 }
 
 // Manual "sync projects" action (Phase A — no ClickUp writes, read + upsert
-// into Supabase only). Walks the known project-list registry, matches each
-// to its Projects-list summary task by normalized name, and upserts a thin
-// `projects` row. If the summary task has a Client relationship set, also
-// upserts a `clients` row and links it — otherwise leaves client_id null
-// (expected pre-revenue: most projects have no client assigned yet).
+// into Supabase only). Discovers every project list in ClickUp (dated
+// project folders + the Completed Projects folder, falling back to the static
+// registry if discovery fails), matches each to its Projects-list summary
+// task by normalized name, and upserts a thin `projects` row. If the summary
+// task has a Client relationship set, also upserts a `clients` row and links
+// it — otherwise leaves client_id null (the project then shows up under
+// unassigned projects until a client is assigned on the Billing Board).
 export async function POST() {
+  let projectLists = KNOWN_PROJECT_LISTS;
+  let discoveryError: string | null = null;
+  try {
+    projectLists = await discoverProjectLists();
+  } catch (err) {
+    discoveryError = err instanceof Error ? err.message : String(err);
+  }
+
   const summaryTasks = await listAllTasks(LISTS.projects);
   const synced: { listId: string; name: string; matched: boolean; clientAssigned: boolean }[] = [];
 
-  for (const known of KNOWN_PROJECT_LISTS) {
+  for (const known of projectLists) {
     const list = await getList(known.clickupListId);
     const key = normalizeProjectKey(list.name);
     const summaryTask = summaryTasks.find((t) => normalizeProjectKey(t.name) === key);
@@ -143,5 +154,5 @@ export async function POST() {
     synced.push({ listId: known.clickupListId, name: list.name, matched: !!summaryTask, clientAssigned });
   }
 
-  return NextResponse.json({ synced });
+  return NextResponse.json({ synced, discoveryError });
 }
